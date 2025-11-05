@@ -95,6 +95,7 @@
                 <th>Tag</th>
                 <th>Tipo</th>
                 <th>Valor</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -114,6 +115,8 @@
                   </td>
                   <td>R$ <%= Number(g.valor).toFixed(2) %>
                   </td>
+                  <td class="text-end"><a class="btn btn-sm btn-outline-primary"
+                      href="/gastos/<%= g.id %>/edit">Editar</a></td>
                 </tr>
                 <% }) %>
             </tbody>
@@ -126,7 +129,7 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script>
       (function () {
-        const seriesData = <%- JSON.stringify(series || []) %>;
+        const seriesData = <% - JSON.stringify(series || []) %>;
         const period = '<%= filters.period %>';
         const periodPt = period === 'day' ? 'dia' : (period === 'week' ? 'semana' : 'mês');
         const categories = seriesData.map(p => new Date(p.period).toLocaleDateString());
