@@ -1,0 +1,24 @@
+-- db_init: inicialização do schema (PostgreSQL)
+-- Cria tabelas: tags e gastos, com FK de gastos.tag_id -> tags.id
+
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS tags (
+  id SERIAL PRIMARY KEY,
+  "timestamp" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  tag TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS gastos (
+  id SERIAL PRIMARY KEY,
+  "timestamp" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  descricao_gasto TEXT NOT NULL,
+  valor NUMERIC(12,2) NOT NULL CHECK (valor >= 0),
+  tag_id INTEGER,
+  FOREIGN KEY (tag_id) REFERENCES tags(id) ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_gastos_tag_id ON gastos(tag_id);
+
+COMMIT;
+
