@@ -7,6 +7,7 @@ const { router: tagsRouter } = require('./src/controllers/tagsController');
 const { router: gastosRouter } = require('./src/controllers/gastosController');
 const { router: dashboardRouter } = require('./src/controllers/dashboardController');
 const { router: contasRouter } = require('./src/controllers/contasController');
+const { router: reportsRouter } = require('./src/controllers/reportsController');
 const { runMigrations } = require('./src/db/migrate');
 
 const app = express();
@@ -54,6 +55,7 @@ app.use('/tags', tagsRouter);
 app.use('/gastos', gastosRouter);
 app.use('/dashboard', dashboardRouter);
 app.use('/contas', contasRouter);
+app.use('/relatorios', reportsRouter);
 
 const port = process.env.PORT || 3000;
 
