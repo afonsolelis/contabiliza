@@ -33,7 +33,6 @@ router.get('/', async (req, res) => {
     const defaultStart = addDays(todayStartUtc, -6);
     const defaultEndExclusive = addDays(todayStartUtc, 1); // até o fim do dia atual (exclusivo)
 
-    const period = (req.query.period || 'day').toLowerCase();
     const startParsed = parseYmdToUtcStart(req.query.start);
     const endParsed = parseYmdToUtcStart(req.query.end);
 
@@ -43,8 +42,8 @@ router.get('/', async (req, res) => {
     const startIso = startDate.toISOString();
     const endIso = endExclusive.toISOString();
 
-    const validPeriods = new Set(['day', 'week', 'month']);
-    const chosen = validPeriods.has(period) ? period : 'day';
+    // Agregação fixa por dia
+    const chosen = 'day';
 
     const { rows: series } = await query(aggregateSql, [chosen, startIso, endIso]);
     const { rows: gastos } = await query(listByRangeSql, [startIso, endIso]);
@@ -53,7 +52,6 @@ router.get('/', async (req, res) => {
 
     return res.render('dashboard/index', {
       filters: {
-        period: chosen,
         start: (req.query.start || new Date(defaultStart).toISOString().slice(0, 10)),
         end: (req.query.end || new Date(todayStartUtc).toISOString().slice(0, 10))
       },

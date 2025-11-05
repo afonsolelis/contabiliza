@@ -25,15 +25,6 @@
             <input type="date" name="end" value="<%= filters.end %>" class="form-control" />
           </label>
         </div>
-        <div class="col-12 col-sm-3">
-          <label class="form-label">Período
-            <select name="period" class="form-select">
-              <option value="day" <%=filters.period==='day' ? 'selected' : '' %>>Dia</option>
-              <option value="week" <%=filters.period==='week' ? 'selected' : '' %>>Semana</option>
-              <option value="month" <%=filters.period==='month' ? 'selected' : '' %>>Mês</option>
-            </select>
-          </label>
-        </div>
         <div class="col-12 col-sm-1">
           <button type="submit" class="btn btn-primary w-100">Aplicar</button>
         </div>
@@ -141,8 +132,7 @@
     <script>
       (function () {
         const seriesData = <%- JSON.stringify(series || []) %>;
-        const period = '<%= filters.period %>';
-        const periodPt = period === 'day' ? 'dia' : (period === 'week' ? 'semana' : 'mês');
+        const periodPt = 'dia';
         function formatLocalDateFromUtcIso(iso) {
           const d = new Date(iso);
           // Usa os componentes UTC para construir uma data local no mesmo Y-M-D
