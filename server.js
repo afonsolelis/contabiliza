@@ -45,6 +45,8 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'src', 'views'));
 
 app.use(express.static(path.join(__dirname, 'public')));
+// Servir dependências direto de node_modules (apexcharts)
+app.use('/vendor', express.static(path.join(__dirname, 'node_modules')));
 app.use(bodyParser({ extended: true }));
 
 app.get('/', (req, res) => res.redirect('/dashboard'));
@@ -68,4 +70,3 @@ runMigrations()
     console.error('Falha ao executar migrações:', err);
     process.exit(1);
   });
-

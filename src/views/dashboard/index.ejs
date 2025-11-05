@@ -126,7 +126,18 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.44.3"></script>
+    <!-- Carrega ApexCharts local (evita CDN) -->
+    <script src="/vendor/apexcharts/dist/apexcharts.min.js"></script>
+    <script>
+      // Fallback para CDN caso o bundle local não esteja disponível
+      (function ensureApexCharts(){
+        if (typeof ApexCharts === 'undefined') {
+          var s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/apexcharts@5.3.6';
+          document.head.appendChild(s);
+        }
+      })();
+    </script>
     <script>
       (function () {
         const seriesData = <%- JSON.stringify(series || []) %>;
@@ -137,8 +148,18 @@
         const el = document.querySelector('#seriesChart');
         if (!el) return;
         if (typeof ApexCharts === 'undefined') {
-          console.warn('ApexCharts não carregado');
-          return;
+          console.warn('ApexCharts não carregado ainda. Tentando novamente...');
+          // aguarda o fallback carregar
+          return setTimeout(() => (typeof ApexCharts !== 'undefined') && new ApexCharts(el, {
+            chart: { type: 'bar', height: 300, toolbar: { show: false } },
+            series: [{ name: `Total por ${periodPt}`, data }],
+            xaxis: { categories },
+            dataLabels: { enabled: false },
+            tooltip: { y: { formatter: (val) => `R$ ${Number(val).toFixed(2)}` } },
+            yaxis: { labels: { formatter: (val) => `R$ ${Number(val).toFixed(0)}` } },
+            colors: ['#0d6efd'],
+            plotOptions: { bar: { borderRadius: 4 } }
+          }).render(), 300);
         }
         const options = {
           chart: { type: 'bar', height: 300, toolbar: { show: false } },
