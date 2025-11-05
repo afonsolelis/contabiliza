@@ -13,6 +13,5 @@ FROM gastos g
 LEFT JOIN tags t ON t.id = g.tag_id
 LEFT JOIN contas c ON c.id = g.conta_id
 WHERE g.data_efetivacao >= $1 AND g.data_efetivacao < $2
-ORDER BY g."timestamp" DESC;
-
+ORDER BY g.data_efetivacao DESC;
 

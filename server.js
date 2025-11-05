@@ -7,6 +7,7 @@ const { router: tagsRouter } = require('./src/controllers/tagsController');
 const { router: gastosRouter } = require('./src/controllers/gastosController');
 const { router: dashboardRouter } = require('./src/controllers/dashboardController');
 const { router: contasRouter } = require('./src/controllers/contasController');
+const { runMigrations } = require('./src/db/migrate');
 
 const app = express();
 
@@ -53,9 +54,18 @@ app.use('/dashboard', dashboardRouter);
 app.use('/contas', contasRouter);
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Servidor iniciado em http://localhost:${port}`);
-});
 
+// Executa migrações antes de subir o servidor
+runMigrations()
+  .then(() => {
+    app.listen(port, () => {
+      // eslint-disable-next-line no-console
+      console.log(`Servidor iniciado em http://localhost:${port}`);
+    });
+  })
+  .catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error('Falha ao executar migrações:', err);
+    process.exit(1);
+  });
 
