@@ -29,7 +29,8 @@ router.get('/', async (req, res) => {
       now.getUTCDate(),
       0, 0, 0, 0
     ));
-    const defaultStart = todayStartUtc; // filtro abre no dia atual
+    // Padrão: fim = hoje; início = 6 dias antes (últimos 7 dias, incluindo hoje)
+    const defaultStart = addDays(todayStartUtc, -6);
     const defaultEndExclusive = addDays(todayStartUtc, 1); // até o fim do dia atual (exclusivo)
 
     const period = (req.query.period || 'day').toLowerCase();
@@ -54,7 +55,7 @@ router.get('/', async (req, res) => {
       filters: {
         period: chosen,
         start: (req.query.start || new Date(defaultStart).toISOString().slice(0, 10)),
-        end: (req.query.end || new Date(defaultStart).toISOString().slice(0, 10))
+        end: (req.query.end || new Date(todayStartUtc).toISOString().slice(0, 10))
       },
       series,
       gastos,
@@ -66,4 +67,3 @@ router.get('/', async (req, res) => {
 });
 
 module.exports = { router };
-
