@@ -1,43 +1,32 @@
-WITH filtered AS (
-  SELECT tag_id, valor, data_efetivacao
+WITH months AS (
+  SELECT tag_id,
+         EXTRACT(MONTH FROM data_efetivacao)::int AS m,
+         SUM(valor) AS total
   FROM gastos
   WHERE EXTRACT(YEAR FROM data_efetivacao) = $1
+  GROUP BY tag_id, m
+),
+labels AS (
+  SELECT id::int AS tag_id, tag::text AS tag FROM tags
+  UNION ALL
+  SELECT NULL::int AS tag_id, '— sem tag —'::text AS tag
 )
-SELECT t.id AS tag_id,
-       t.tag AS tag,
-       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 1 THEN f.valor ELSE 0 END) AS jan,
-       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 2 THEN f.valor ELSE 0 END) AS fev,
-       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 3 THEN f.valor ELSE 0 END) AS mar,
-       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 4 THEN f.valor ELSE 0 END) AS abr,
-       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 5 THEN f.valor ELSE 0 END) AS mai,
-       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 6 THEN f.valor ELSE 0 END) AS jun,
-       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 7 THEN f.valor ELSE 0 END) AS jul,
-       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 8 THEN f.valor ELSE 0 END) AS ago,
-       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 9 THEN f.valor ELSE 0 END) AS setem,
-       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 10 THEN f.valor ELSE 0 END) AS out,
-       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 11 THEN f.valor ELSE 0 END) AS nov,
-       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 12 THEN f.valor ELSE 0 END) AS dez
-FROM tags t
-LEFT JOIN filtered f ON f.tag_id = t.id
-GROUP BY t.id, t.tag
-
-UNION ALL
-
-SELECT NULL AS tag_id,
-       '— sem tag —' AS tag,
-       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 1 THEN g.valor ELSE 0 END) AS jan,
-       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 2 THEN g.valor ELSE 0 END) AS fev,
-       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 3 THEN g.valor ELSE 0 END) AS mar,
-       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 4 THEN g.valor ELSE 0 END) AS abr,
-       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 5 THEN g.valor ELSE 0 END) AS mai,
-       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 6 THEN g.valor ELSE 0 END) AS jun,
-       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 7 THEN g.valor ELSE 0 END) AS jul,
-       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 8 THEN g.valor ELSE 0 END) AS ago,
-       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 9 THEN g.valor ELSE 0 END) AS setem,
-       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 10 THEN g.valor ELSE 0 END) AS out,
-       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 11 THEN g.valor ELSE 0 END) AS nov,
-       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 12 THEN g.valor ELSE 0 END) AS dez
-FROM gastos g
-WHERE EXTRACT(YEAR FROM g.data_efetivacao) = $1 AND g.tag_id IS NULL
-GROUP BY 1, 2
-ORDER BY tag;
+SELECT l.tag_id,
+       l.tag,
+       COALESCE(SUM(CASE WHEN m.m = 1 THEN m.total ELSE 0 END), 0) AS jan,
+       COALESCE(SUM(CASE WHEN m.m = 2 THEN m.total ELSE 0 END), 0) AS fev,
+       COALESCE(SUM(CASE WHEN m.m = 3 THEN m.total ELSE 0 END), 0) AS mar,
+       COALESCE(SUM(CASE WHEN m.m = 4 THEN m.total ELSE 0 END), 0) AS abr,
+       COALESCE(SUM(CASE WHEN m.m = 5 THEN m.total ELSE 0 END), 0) AS mai,
+       COALESCE(SUM(CASE WHEN m.m = 6 THEN m.total ELSE 0 END), 0) AS jun,
+       COALESCE(SUM(CASE WHEN m.m = 7 THEN m.total ELSE 0 END), 0) AS jul,
+       COALESCE(SUM(CASE WHEN m.m = 8 THEN m.total ELSE 0 END), 0) AS ago,
+       COALESCE(SUM(CASE WHEN m.m = 9 THEN m.total ELSE 0 END), 0) AS setem,
+       COALESCE(SUM(CASE WHEN m.m = 10 THEN m.total ELSE 0 END), 0) AS out,
+       COALESCE(SUM(CASE WHEN m.m = 11 THEN m.total ELSE 0 END), 0) AS nov,
+       COALESCE(SUM(CASE WHEN m.m = 12 THEN m.total ELSE 0 END), 0) AS dez
+FROM labels l
+LEFT JOIN months m
+  ON m.tag_id IS NOT DISTINCT FROM l.tag_id
+GROUP BY l.tag_id, l.tag
+ORDER BY l.tag;
