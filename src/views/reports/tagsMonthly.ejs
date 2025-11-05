@@ -48,10 +48,10 @@
           </tr>
         </thead>
         <tbody>
-          <% const sumRow = {jan:0,fev:0,mar:0,abr:0,mai:0,jun:0,jul:0,ago:0,set:0,out:0,nov:0,dez:0}; %>
+          <% const sumRow = {jan:0,fev:0,mar:0,abr:0,mai:0,jun:0,jul:0,ago:0,setem:0,out:0,nov:0,dez:0}; %>
           <% (rows || []).forEach(r => { %>
-            <% const total = Number(r.jan)+Number(r.fev)+Number(r.mar)+Number(r.abr)+Number(r.mai)+Number(r.jun)+Number(r.jul)+Number(r.ago)+Number(r.set)+Number(r.out)+Number(r.nov)+Number(r.dez); %>
-            <% sumRow.jan+=Number(r.jan); sumRow.fev+=Number(r.fev); sumRow.mar+=Number(r.mar); sumRow.abr+=Number(r.abr); sumRow.mai+=Number(r.mai); sumRow.jun+=Number(r.jun); sumRow.jul+=Number(r.jul); sumRow.ago+=Number(r.ago); sumRow.set+=Number(r.set); sumRow.out+=Number(r.out); sumRow.nov+=Number(r.nov); sumRow.dez+=Number(r.dez); %>
+            <% const total = Number(r.jan)+Number(r.fev)+Number(r.mar)+Number(r.abr)+Number(r.mai)+Number(r.jun)+Number(r.jul)+Number(r.ago)+Number(r.setem)+Number(r.out)+Number(r.nov)+Number(r.dez); %>
+            <% sumRow.jan+=Number(r.jan); sumRow.fev+=Number(r.fev); sumRow.mar+=Number(r.mar); sumRow.abr+=Number(r.abr); sumRow.mai+=Number(r.mai); sumRow.jun+=Number(r.jun); sumRow.jul+=Number(r.jul); sumRow.ago+=Number(r.ago); sumRow.setem+=Number(r.setem); sumRow.out+=Number(r.out); sumRow.nov+=Number(r.nov); sumRow.dez+=Number(r.dez); %>
             <tr>
               <td class="sticky-col"><%= r.tag %></td>
               <td>R$ <%= Number(r.jan).toFixed(2) %></td>
@@ -62,7 +62,7 @@
               <td>R$ <%= Number(r.jun).toFixed(2) %></td>
               <td>R$ <%= Number(r.jul).toFixed(2) %></td>
               <td>R$ <%= Number(r.ago).toFixed(2) %></td>
-              <td>R$ <%= Number(r.set).toFixed(2) %></td>
+              <td>R$ <%= Number(r.setem).toFixed(2) %></td>
               <td>R$ <%= Number(r.out).toFixed(2) %></td>
               <td>R$ <%= Number(r.nov).toFixed(2) %></td>
               <td>R$ <%= Number(r.dez).toFixed(2) %></td>
@@ -71,7 +71,7 @@
           <% }) %>
         </tbody>
         <tfoot>
-          <% const totalGeral = sumRow.jan+sumRow.fev+sumRow.mar+sumRow.abr+sumRow.mai+sumRow.jun+sumRow.jul+sumRow.ago+sumRow.set+sumRow.out+sumRow.nov+sumRow.dez; %>
+          <% const totalGeral = sumRow.jan+sumRow.fev+sumRow.mar+sumRow.abr+sumRow.mai+sumRow.jun+sumRow.jul+sumRow.ago+sumRow.setem+sumRow.out+sumRow.nov+sumRow.dez; %>
           <tr class="table-secondary">
             <th class="sticky-col">Total</th>
             <th>R$ <%= sumRow.jan.toFixed(2) %></th>
@@ -82,7 +82,7 @@
             <th>R$ <%= sumRow.jun.toFixed(2) %></th>
             <th>R$ <%= sumRow.jul.toFixed(2) %></th>
             <th>R$ <%= sumRow.ago.toFixed(2) %></th>
-            <th>R$ <%= sumRow.set.toFixed(2) %></th>
+            <th>R$ <%= sumRow.setem.toFixed(2) %></th>
             <th>R$ <%= sumRow.out.toFixed(2) %></th>
             <th>R$ <%= sumRow.nov.toFixed(2) %></th>
             <th>R$ <%= sumRow.dez.toFixed(2) %></th>
@@ -96,4 +96,3 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

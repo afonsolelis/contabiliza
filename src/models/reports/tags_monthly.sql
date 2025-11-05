@@ -13,7 +13,7 @@ SELECT t.id AS tag_id,
        SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 6 THEN f.valor ELSE 0 END) AS jun,
        SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 7 THEN f.valor ELSE 0 END) AS jul,
        SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 8 THEN f.valor ELSE 0 END) AS ago,
-       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 9 THEN f.valor ELSE 0 END) AS set,
+       SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 9 THEN f.valor ELSE 0 END) AS setem,
        SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 10 THEN f.valor ELSE 0 END) AS out,
        SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 11 THEN f.valor ELSE 0 END) AS nov,
        SUM(CASE WHEN EXTRACT(MONTH FROM f.data_efetivacao) = 12 THEN f.valor ELSE 0 END) AS dez
@@ -33,7 +33,7 @@ SELECT NULL AS tag_id,
        SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 6 THEN g.valor ELSE 0 END) AS jun,
        SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 7 THEN g.valor ELSE 0 END) AS jul,
        SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 8 THEN g.valor ELSE 0 END) AS ago,
-       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 9 THEN g.valor ELSE 0 END) AS set,
+       SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 9 THEN g.valor ELSE 0 END) AS setem,
        SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 10 THEN g.valor ELSE 0 END) AS out,
        SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 11 THEN g.valor ELSE 0 END) AS nov,
        SUM(CASE WHEN EXTRACT(MONTH FROM g.data_efetivacao) = 12 THEN g.valor ELSE 0 END) AS dez
@@ -41,4 +41,3 @@ FROM gastos g
 WHERE EXTRACT(YEAR FROM g.data_efetivacao) = $1 AND g.tag_id IS NULL
 GROUP BY 1, 2
 ORDER BY tag;
-
