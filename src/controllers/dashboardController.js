@@ -22,15 +22,22 @@ function addDays(date, days) {
 router.get('/', async (req, res) => {
   try {
     const now = new Date();
-    const defaultStart = new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000);
-    const defaultEnd = now;
+    // início do dia (UTC) para hoje
+    const todayStartUtc = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0, 0, 0, 0
+    ));
+    const defaultStart = todayStartUtc; // filtro abre no dia atual
+    const defaultEndExclusive = addDays(todayStartUtc, 1); // até o fim do dia atual (exclusivo)
 
     const period = (req.query.period || 'day').toLowerCase();
     const startParsed = parseYmdToUtcStart(req.query.start);
     const endParsed = parseYmdToUtcStart(req.query.end);
 
     const startDate = startParsed || defaultStart;
-    const endExclusive = endParsed ? addDays(endParsed, 1) : defaultEnd;
+    const endExclusive = endParsed ? addDays(endParsed, 1) : defaultEndExclusive;
 
     const startIso = startDate.toISOString();
     const endIso = endExclusive.toISOString();
@@ -46,8 +53,8 @@ router.get('/', async (req, res) => {
     return res.render('dashboard/index', {
       filters: {
         period: chosen,
-        start: (req.query.start || new Date(startDate).toISOString().slice(0, 10)),
-        end: (req.query.end || new Date().toISOString().slice(0, 10))
+        start: (req.query.start || new Date(defaultStart).toISOString().slice(0, 10)),
+        end: (req.query.end || new Date(defaultStart).toISOString().slice(0, 10))
       },
       series,
       gastos,
@@ -59,5 +66,4 @@ router.get('/', async (req, res) => {
 });
 
 module.exports = { router };
-
 
