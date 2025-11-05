@@ -1,7 +1,7 @@
-SELECT DATE_TRUNC($1, g."timestamp") AS period,
+SELECT DATE_TRUNC($1, g.data_efetivacao) AS period,
        SUM(g.valor) AS total
 FROM gastos g
-WHERE g."timestamp" >= $2 AND g."timestamp" < $3
+WHERE g.data_efetivacao >= $2 AND g.data_efetivacao < $3
 GROUP BY period
 ORDER BY period;
 

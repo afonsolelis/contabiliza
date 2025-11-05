@@ -3,7 +3,7 @@ SELECT g.id,
        g.valor,
        g.tag_id,
        g.tipo,
-       g."timestamp",
+       g.data_efetivacao AS efetivado_em,
        g.conta_id,
        t.tag,
        c.banco,
@@ -12,7 +12,7 @@ SELECT g.id,
 FROM gastos g
 LEFT JOIN tags t ON t.id = g.tag_id
 LEFT JOIN contas c ON c.id = g.conta_id
-WHERE g."timestamp" >= $1 AND g."timestamp" < $2
+WHERE g.data_efetivacao >= $1 AND g.data_efetivacao < $2
 ORDER BY g."timestamp" DESC;
 
 

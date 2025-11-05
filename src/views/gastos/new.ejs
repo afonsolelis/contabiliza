@@ -40,6 +40,12 @@
               </label>
             </div>
             <div class="col-12 col-sm-6">
+              <label class="form-label">Data de efetivação
+                <input type="date" name="data_efetivacao" class="form-control"
+                  value="<%= (new Date()).toISOString().slice(0,10) %>" required />
+              </label>
+            </div>
+            <div class="col-12 col-sm-6">
               <label class="form-label">Conta (opcional)
                 <select name="conta_id" class="form-select">
                   <option value="">— sem conta —</option>

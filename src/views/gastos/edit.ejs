@@ -42,6 +42,12 @@
               </label>
             </div>
             <div class="col-12 col-sm-4">
+              <label class="form-label">Data de efetivação
+                <input type="date" name="data_efetivacao" class="form-control"
+                  value="<%= new Date(gasto.data_efetivacao).toISOString().slice(0,10) %>" required />
+              </label>
+            </div>
+            <div class="col-12 col-sm-4">
               <label class="form-label">Tag (opcional)
                 <select name="tag_id" class="form-select">
                   <option value="">— sem tag —</option>
@@ -64,9 +70,13 @@
                 </select>
               </label>
             </div>
-            <div class="col-12">
+            <div class="col-12 d-flex align-items-center gap-2">
               <button type="submit" class="btn btn-primary">Salvar alterações</button>
-              <a href="/dashboard" class="btn btn-secondary ms-2">Cancelar</a>
+              <a href="/dashboard" class="btn btn-secondary">Cancelar</a>
+              <form action="/gastos/<%= gasto.id %>/delete" method="post" class="ms-auto"
+                onsubmit="return confirm('Deseja realmente excluir este gasto?');">
+                <button type="submit" class="btn btn-outline-danger">Excluir</button>
+              </form>
             </div>
           </form>
     </div>

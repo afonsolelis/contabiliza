@@ -90,7 +90,7 @@
           <table class="table table-striped align-middle">
             <thead>
               <tr>
-                <th>Data</th>
+                <th>Efetivado em</th>
                 <th>Descrição</th>
                 <th>Tag</th>
                 <th>Tipo</th>
@@ -102,7 +102,7 @@
               <% (gastos || []).forEach(g=> { %>
                 <tr>
                   <td>
-                    <%= new Date(g.timestamp).toLocaleString() %>
+                    <%= new Date(g.efetivado_em).toLocaleString() %>
                   </td>
                   <td>
                     <%= g.descricao_gasto %>
