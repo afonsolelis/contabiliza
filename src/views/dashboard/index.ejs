@@ -143,7 +143,14 @@
         const seriesData = <%- JSON.stringify(series || []) %>;
         const period = '<%= filters.period %>';
         const periodPt = period === 'day' ? 'dia' : (period === 'week' ? 'semana' : 'mês');
-        const categories = seriesData.map(p => new Date(p.period).toLocaleDateString());
+        function formatLocalDateFromUtcIso(iso) {
+          const d = new Date(iso);
+          // Usa os componentes UTC para construir uma data local no mesmo Y-M-D
+          // evitando o deslocamento de fuso que mostra o dia anterior.
+          const localSameYmd = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+          return localSameYmd.toLocaleDateString();
+        }
+        const categories = seriesData.map(p => formatLocalDateFromUtcIso(p.period));
         const data = seriesData.map(p => Number(p.total));
         const el = document.querySelector('#seriesChart');
         if (!el) return;
