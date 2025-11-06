@@ -16,7 +16,12 @@
         <div class="alert alert-success" role="alert">
           <%= message %>
         </div>
-        <% } %>
+      <% } %>
+      <% if (error) { %>
+        <div class="alert alert-danger" role="alert">
+          <%= error %>
+        </div>
+      <% } %>
 
           <h1 class="mb-3">Cadastrar tag</h1>
           <form action="/tags" method="post" class="row g-3 align-items-end" style="max-width:600px;">
@@ -31,12 +36,24 @@
           </form>
 
           <h2 class="h4 mt-4">Tags existentes</h2>
-          <ul class="list-group mb-5" style="max-width:600px;">
-            <% (tags || []).forEach(t=> { %>
-              <li class="list-group-item">
-                <%= t.tag %>
-              </li>
+          <ul class="list-group mb-5" style="max-width:700px;">
+            <% if ((tags || []).length === 0) { %>
+              <li class="list-group-item text-secondary text-center">Nenhuma tag cadastrada ainda.</li>
+            <% } else { %>
+              <% tags.forEach(t=> { %>
+                <li class="list-group-item">
+                  <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
+                    <form action="/tags/<%= t.id %>/update" method="post" class="d-flex flex-grow-1 gap-2">
+                      <input type="text" name="tag" class="form-control" value="<%= t.tag %>" required />
+                      <button type="submit" class="btn btn-primary btn-sm">Salvar</button>
+                    </form>
+                    <form action="/tags/<%= t.id %>/delete" method="post" onsubmit="return confirm('Deseja realmente remover esta tag?');">
+                      <button type="submit" class="btn btn-outline-danger btn-sm">Excluir</button>
+                    </form>
+                  </div>
+                </li>
               <% }) %>
+            <% } %>
           </ul>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
