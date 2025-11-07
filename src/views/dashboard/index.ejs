@@ -67,7 +67,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                   <div>
                     <div class="fw-semibold">Total no período</div>
-                    <div class="fs-4">R$ <%= Number(totalRange).toFixed(2) %>
+                    <div class="fs-4">R$ <%= money(totalRange) %>
                     </div>
                   </div>
                 </div>
@@ -94,7 +94,7 @@
                   <td>
                     <%= formatUtcDate(p.period) %>
                   </td>
-                  <td>R$ <%= Number(p.total).toFixed(2) %>
+                  <td>R$ <%= money(p.total) %>
                   </td>
                 </tr>
                 <% }) %>
@@ -132,7 +132,7 @@
                   <td>
                     <%= g.tipo %>
                   </td>
-                  <td>R$ <%= Number(g.valor).toFixed(2) %>
+                  <td>R$ <%= money(g.valor) %>
                   </td>
                   <td class="text-end"><a class="btn btn-sm btn-outline-primary"
                       href="/gastos/<%= g.id %>/edit">Editar</a></td>
@@ -158,7 +158,9 @@
       })();
     </script>
     <script>
-      (function () {
+          (function () {
+        const fmtCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(val) || 0);
+        const fmtCurrency0 = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(val) || 0);
         const seriesData = <%- JSON.stringify(series || []) %>;
         const periodPt = 'dia';
         function formatLocalDateFromUtcIso(iso) {
@@ -180,8 +182,8 @@
             series: [{ name: `Total por ${periodPt}`, data }],
             xaxis: { categories },
             dataLabels: { enabled: false },
-            tooltip: { y: { formatter: (val) => `R$ ${Number(val).toFixed(2)}` } },
-            yaxis: { labels: { formatter: (val) => `R$ ${Number(val).toFixed(0)}` } },
+            tooltip: { y: { formatter: (val) => fmtCurrency(val) } },
+            yaxis: { labels: { formatter: (val) => fmtCurrency0(val) } },
             colors: ['#0d6efd'],
             plotOptions: { bar: { borderRadius: 4 } }
           }).render(), 300);
@@ -191,8 +193,8 @@
           series: [{ name: `Total por ${periodPt}`, data }],
           xaxis: { categories },
           dataLabels: { enabled: false },
-          tooltip: { y: { formatter: (val) => `R$ ${Number(val).toFixed(2)}` } },
-          yaxis: { labels: { formatter: (val) => `R$ ${Number(val).toFixed(0)}` } },
+          tooltip: { y: { formatter: (val) => fmtCurrency(val) } },
+          yaxis: { labels: { formatter: (val) => fmtCurrency0(val) } },
           colors: ['#0d6efd'],
           plotOptions: { bar: { borderRadius: 4 } }
         };

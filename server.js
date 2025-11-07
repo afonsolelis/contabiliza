@@ -50,6 +50,26 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/vendor', express.static(path.join(__dirname, 'node_modules')));
 app.use(bodyParser({ extended: true }));
 
+// Helpers globais para as views
+app.locals.money = (n) => {
+  const num = Number(n);
+  if (Number.isNaN(num)) return '';
+  return num.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+app.locals.currency = (n) => {
+  const num = Number(n);
+  if (Number.isNaN(num)) return '';
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+};
+
 app.get('/', (req, res) => res.redirect('/dashboard'));
 app.use('/tags', tagsRouter);
 app.use('/gastos', gastosRouter);

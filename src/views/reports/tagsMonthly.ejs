@@ -54,19 +54,19 @@
             <% sumRow.jan+=Number(r.jan); sumRow.fev+=Number(r.fev); sumRow.mar+=Number(r.mar); sumRow.abr+=Number(r.abr); sumRow.mai+=Number(r.mai); sumRow.jun+=Number(r.jun); sumRow.jul+=Number(r.jul); sumRow.ago+=Number(r.ago); sumRow.setem+=Number(r.setem); sumRow.out+=Number(r.out); sumRow.nov+=Number(r.nov); sumRow.dez+=Number(r.dez); %>
             <tr>
               <td class="sticky-col"><%= r.tag %></td>
-              <td>R$ <%= Number(r.jan).toFixed(2) %></td>
-              <td>R$ <%= Number(r.fev).toFixed(2) %></td>
-              <td>R$ <%= Number(r.mar).toFixed(2) %></td>
-              <td>R$ <%= Number(r.abr).toFixed(2) %></td>
-              <td>R$ <%= Number(r.mai).toFixed(2) %></td>
-              <td>R$ <%= Number(r.jun).toFixed(2) %></td>
-              <td>R$ <%= Number(r.jul).toFixed(2) %></td>
-              <td>R$ <%= Number(r.ago).toFixed(2) %></td>
-              <td>R$ <%= Number(r.setem).toFixed(2) %></td>
-              <td>R$ <%= Number(r.out).toFixed(2) %></td>
-              <td>R$ <%= Number(r.nov).toFixed(2) %></td>
-              <td>R$ <%= Number(r.dez).toFixed(2) %></td>
-              <td class="fw-semibold">R$ <%= total.toFixed(2) %></td>
+              <td>R$ <%= money(r.jan) %></td>
+              <td>R$ <%= money(r.fev) %></td>
+              <td>R$ <%= money(r.mar) %></td>
+              <td>R$ <%= money(r.abr) %></td>
+              <td>R$ <%= money(r.mai) %></td>
+              <td>R$ <%= money(r.jun) %></td>
+              <td>R$ <%= money(r.jul) %></td>
+              <td>R$ <%= money(r.ago) %></td>
+              <td>R$ <%= money(r.setem) %></td>
+              <td>R$ <%= money(r.out) %></td>
+              <td>R$ <%= money(r.nov) %></td>
+              <td>R$ <%= money(r.dez) %></td>
+              <td class="fw-semibold">R$ <%= money(total) %></td>
             </tr>
           <% }) %>
         </tbody>
@@ -74,19 +74,19 @@
           <% const totalGeral = sumRow.jan+sumRow.fev+sumRow.mar+sumRow.abr+sumRow.mai+sumRow.jun+sumRow.jul+sumRow.ago+sumRow.setem+sumRow.out+sumRow.nov+sumRow.dez; %>
           <tr class="table-secondary">
             <th class="sticky-col">Total</th>
-            <th>R$ <%= sumRow.jan.toFixed(2) %></th>
-            <th>R$ <%= sumRow.fev.toFixed(2) %></th>
-            <th>R$ <%= sumRow.mar.toFixed(2) %></th>
-            <th>R$ <%= sumRow.abr.toFixed(2) %></th>
-            <th>R$ <%= sumRow.mai.toFixed(2) %></th>
-            <th>R$ <%= sumRow.jun.toFixed(2) %></th>
-            <th>R$ <%= sumRow.jul.toFixed(2) %></th>
-            <th>R$ <%= sumRow.ago.toFixed(2) %></th>
-            <th>R$ <%= sumRow.setem.toFixed(2) %></th>
-            <th>R$ <%= sumRow.out.toFixed(2) %></th>
-            <th>R$ <%= sumRow.nov.toFixed(2) %></th>
-            <th>R$ <%= sumRow.dez.toFixed(2) %></th>
-            <th class="fw-bold">R$ <%= totalGeral.toFixed(2) %></th>
+            <th>R$ <%= money(sumRow.jan) %></th>
+            <th>R$ <%= money(sumRow.fev) %></th>
+            <th>R$ <%= money(sumRow.mar) %></th>
+            <th>R$ <%= money(sumRow.abr) %></th>
+            <th>R$ <%= money(sumRow.mai) %></th>
+            <th>R$ <%= money(sumRow.jun) %></th>
+            <th>R$ <%= money(sumRow.jul) %></th>
+            <th>R$ <%= money(sumRow.ago) %></th>
+            <th>R$ <%= money(sumRow.setem) %></th>
+            <th>R$ <%= money(sumRow.out) %></th>
+            <th>R$ <%= money(sumRow.nov) %></th>
+            <th>R$ <%= money(sumRow.dez) %></th>
+            <th class="fw-bold">R$ <%= money(totalGeral) %></th>
           </tr>
         </tfoot>
       </table>
