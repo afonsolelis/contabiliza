@@ -18,6 +18,13 @@ function addDays(date, days) {
   return new Date(ms);
 }
 
+function formatLocalYmd(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 router.get('/tags-mensal', async (req, res) => {
   try {
     const now = new Date();
@@ -34,13 +41,9 @@ router.get('/tags-mensal', async (req, res) => {
 router.get('/totais-periodo', async (req, res) => {
   try {
     const now = new Date();
-    const todayStartUtc = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      0, 0, 0, 0
-    ));
-    const defaultStart = addDays(todayStartUtc, -29);
+    const todayLocalYmd = formatLocalYmd(now);
+    const todayStartUtc = parseYmdToUtcStart(todayLocalYmd);
+    const defaultStart = addDays(todayStartUtc, -6);
     const defaultEndExclusive = addDays(todayStartUtc, 1);
 
     const startParsed = parseYmdToUtcStart(req.query.start);

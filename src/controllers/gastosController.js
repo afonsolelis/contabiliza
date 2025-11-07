@@ -24,6 +24,11 @@ function parseYmdToUtcStart(ymd) {
   return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
 }
 
+function todayUtcStart() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
+}
+
 router.post('/', async (req, res) => {
   const descricao = (req.body.descricao_gasto || '').trim();
   const valorRaw = (req.body.valor || '').toString().trim();
@@ -41,7 +46,7 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const efetivacaoDate = parseYmdToUtcStart(dataEfetivacaoInput) || new Date();
+    const efetivacaoDate = parseYmdToUtcStart(dataEfetivacaoInput) || todayUtcStart();
     await query(insertGastoSql, [descricao, valor, tagId, tipo, contaId, efetivacaoDate.toISOString()]);
     return res.redirect('/gastos/new?message=Gasto inserido');
   } catch (e) {
@@ -82,7 +87,7 @@ router.post('/:id/update', async (req, res) => {
     return res.status(400).render('gastos/edit', { gasto: rows[0], tags, contas, message: 'Dados inválidos' });
   }
   try {
-    const efetivacaoDate = parseYmdToUtcStart(dataEfetivacaoInput) || new Date();
+    const efetivacaoDate = parseYmdToUtcStart(dataEfetivacaoInput) || todayUtcStart();
     await query(updateGastoSql, [id, descricao, valor, tipo, tagId, contaId, efetivacaoDate.toISOString()]);
     return res.redirect('/dashboard');
   } catch (e) {
@@ -106,5 +111,4 @@ router.post('/:id/delete', async (req, res) => {
     return res.status(500).render('gastos/edit', { gasto: rows[0], tags, contas, message: 'Erro ao deletar gasto' });
   }
 });
-
 

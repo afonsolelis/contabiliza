@@ -10,6 +10,16 @@
 
 <body>
   <%- include('../partials/header.ejs') %>
+  <%
+    const formatLocalDateInput = (date) => {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+    const gastoDateYmd = formatLocalDateInput(new Date(gasto.data_efetivacao));
+  %>
 
     <div class="container">
       <% if (message) { %>
@@ -43,8 +53,7 @@
             </div>
             <div class="col-12 col-sm-4">
               <label class="form-label">Data de efetivação
-                <input type="date" name="data_efetivacao" class="form-control"
-                  value="<%= new Date(gasto.data_efetivacao).toISOString().slice(0,10) %>" required />
+                <input type="date" name="data_efetivacao" class="form-control" value="<%= gastoDateYmd %>" required />
               </label>
             </div>
             <div class="col-12 col-sm-4">
