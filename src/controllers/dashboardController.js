@@ -6,6 +6,7 @@ const router = express.Router();
 const aggregateSql = loadSql('gastos/aggregate.sql');
 const listByRangeSql = loadSql('gastos/list_by_range.sql');
 const sumByRangeSql = loadSql('gastos/sum_by_range.sql');
+const sumByContaSql = loadSql('gastos/sum_by_conta_range.sql');
 
 function parseYmdToUtcStart(ymd) {
   if (!ymd) return null;
@@ -47,6 +48,7 @@ router.get('/', async (req, res) => {
 
     const { rows: series } = await query(aggregateSql, [chosen, startIso, endIso]);
     const { rows: gastos } = await query(listByRangeSql, [startIso, endIso]);
+    const { rows: totalsByConta } = await query(sumByContaSql, [startIso, endIso]);
     const { rows: sumRows } = await query(sumByRangeSql, [startIso, endIso]);
     const totalRange = Number(sumRows?.[0]?.total || 0);
 
@@ -56,6 +58,7 @@ router.get('/', async (req, res) => {
         end: (req.query.end || new Date(todayStartUtc).toISOString().slice(0, 10))
       },
       series,
+      totalsByConta,
       gastos,
       totalRange
     });
