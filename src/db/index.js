@@ -14,10 +14,7 @@ const poolConfig = databaseUrl
       database: process.env.PGDATABASE || 'contabiliza'
     };
 
-// Força a senha a ser string quando DATABASE_URL está setada mas sem senha,
-// permitindo sobrescrever via PGPASSWORD.
 if (process.env.PGPASSWORD !== undefined) {
-  // pg aceita sobreposição de propriedades mesmo com connectionString
   poolConfig.password = String(process.env.PGPASSWORD);
 }
 

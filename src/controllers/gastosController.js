@@ -56,9 +56,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-module.exports = { router };
-
-// Editar
 router.get('/:id/edit', async (req, res) => {
   const id = Number(req.params.id);
   if (Number.isNaN(id)) return res.redirect('/dashboard');
@@ -111,4 +108,6 @@ router.post('/:id/delete', async (req, res) => {
     return res.status(500).render('gastos/edit', { gasto: rows[0], tags, contas, message: 'Erro ao deletar gasto' });
   }
 });
+
+module.exports = { router };
 

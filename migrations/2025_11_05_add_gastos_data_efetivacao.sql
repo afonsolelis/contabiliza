@@ -1,6 +1,3 @@
--- Adiciona data_efetivacao aos gastos (data efetiva do gasto)
--- PostgreSQL
-
 BEGIN;
 
 ALTER TABLE gastos

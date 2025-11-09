@@ -23,16 +23,14 @@ function addDays(date, days) {
 router.get('/', async (req, res) => {
   try {
     const now = new Date();
-    // início do dia (UTC) para hoje
     const todayStartUtc = new Date(Date.UTC(
       now.getUTCFullYear(),
       now.getUTCMonth(),
       now.getUTCDate(),
       0, 0, 0, 0
     ));
-    // Padrão: fim = hoje; início = 6 dias antes (últimos 7 dias, incluindo hoje)
     const defaultStart = addDays(todayStartUtc, -6);
-    const defaultEndExclusive = addDays(todayStartUtc, 1); // até o fim do dia atual (exclusivo)
+    const defaultEndExclusive = addDays(todayStartUtc, 1);
 
     const startParsed = parseYmdToUtcStart(req.query.start);
     const endParsed = parseYmdToUtcStart(req.query.end);
@@ -43,7 +41,6 @@ router.get('/', async (req, res) => {
     const startIso = startDate.toISOString();
     const endIso = endExclusive.toISOString();
 
-    // Agregação fixa por dia
     const chosen = 'day';
 
     const { rows: series } = await query(aggregateSql, [chosen, startIso, endIso]);

@@ -12,11 +12,9 @@ const { runMigrations } = require('./src/db/migrate');
 
 const app = express();
 
-// Basic Auth via .env (AUTH_USER / AUTH_PASSWORD)
 const AUTH_USER = process.env.AUTH_USER;
 const AUTH_PASSWORD = process.env.AUTH_PASSWORD;
 if (!AUTH_USER || !AUTH_PASSWORD) {
-  // eslint-disable-next-line no-console
   console.error('Missing AUTH_USER or AUTH_PASSWORD env vars. Define them in your .env file.');
   process.exit(1);
 }
@@ -28,9 +26,7 @@ function basicAuthMiddleware(req, res, next) {
     let decoded = '';
     try {
       decoded = Buffer.from(base64, 'base64').toString('utf8');
-    } catch (_) {
-      // ignore
-    }
+    } catch (_) {}
     const sepIndex = decoded.indexOf(':');
     const user = sepIndex >= 0 ? decoded.slice(0, sepIndex) : '';
     const pass = sepIndex >= 0 ? decoded.slice(sepIndex + 1) : '';
@@ -46,11 +42,9 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'src', 'views'));
 
 app.use(express.static(path.join(__dirname, 'public')));
-// Servir dependências direto de node_modules (apexcharts)
 app.use('/vendor', express.static(path.join(__dirname, 'node_modules')));
 app.use(bodyParser({ extended: true }));
 
-// Helpers globais para as views
 app.locals.money = (n) => {
   const num = Number(n);
   if (Number.isNaN(num)) return '';
@@ -79,16 +73,13 @@ app.use('/relatorios', reportsRouter);
 
 const port = process.env.PORT || 3000;
 
-// Executa migrações antes de subir o servidor
 runMigrations()
   .then(() => {
     app.listen(port, () => {
-      // eslint-disable-next-line no-console
       console.log(`Servidor iniciado em http://localhost:${port}`);
     });
   })
   .catch((err) => {
-    // eslint-disable-next-line no-console
     console.error('Falha ao executar migrações:', err);
     process.exit(1);
   });

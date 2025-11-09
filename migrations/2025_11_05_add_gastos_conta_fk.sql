@@ -1,6 +1,3 @@
--- Adiciona conta_id em gastos e cria FK para contas(id)
--- PostgreSQL
-
 BEGIN;
 
 ALTER TABLE gastos

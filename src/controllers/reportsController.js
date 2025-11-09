@@ -33,7 +33,6 @@ router.get('/tags-mensal', async (req, res) => {
     const { rows } = await query(tagsMonthlySql, [year]);
     return res.render('reports/tagsMonthly', { year, rows });
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('Erro em /relatorios/tags-mensal:', err);
     return res.status(500).send('Erro ao carregar relatório mensal por tag.');
   }
@@ -67,7 +66,6 @@ router.get('/tag-mes-detalhes', async (req, res) => {
       total
     });
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('Erro em /relatorios/tag-mes-detalhes:', err);
     return res.status(500).send('Erro ao carregar detalhes do mês.');
   }
@@ -102,7 +100,6 @@ router.get('/totais-periodo', async (req, res) => {
       totalRange
     });
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('Erro em /relatorios/totais-periodo:', err);
     return res.status(500).send('Erro ao carregar totais do período.');
   }

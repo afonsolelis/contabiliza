@@ -1,7 +1,3 @@
--- Busca todos os gastos de uma tag específica em um mês/ano
--- $1: ano
--- $2: mês (1-12)
--- $3: tag_id (pode ser NULL para gastos sem tag)
 SELECT
   g.id,
   g.descricao_gasto,

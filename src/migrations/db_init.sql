@@ -1,6 +1,3 @@
--- db_init: inicialização do schema (PostgreSQL)
--- Cria tabelas: tags e gastos, com FK de gastos.tag_id -> tags.id
-
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS tags (

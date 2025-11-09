@@ -6,7 +6,6 @@ async function runSql(sql, label) {
   const client = await pool.connect();
   try {
     await client.query(sql);
-    // eslint-disable-next-line no-console
     console.log(`[migrate] applied: ${label}`);
   } finally {
     client.release();
@@ -22,14 +21,12 @@ function readIfExists(filePath) {
 }
 
 async function runMigrations() {
-  // 1) Base init (idempotente)
   const baseInit = path.join(__dirname, '..', 'migrations', 'db_init.sql');
   const baseSql = readIfExists(baseInit);
   if (baseSql) {
     await runSql(baseSql, 'src/migrations/db_init.sql');
   }
 
-  // 2) Migrations adicionais no diretório raiz ./migrations
   const rootMigrationsDir = path.join(process.cwd(), 'migrations');
   if (fs.existsSync(rootMigrationsDir)) {
     const files = fs

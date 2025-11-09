@@ -1,6 +1,3 @@
--- Adiciona tabela contas e coluna tipo em gastos
--- PostgreSQL
-
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS contas (
@@ -11,7 +8,6 @@ CREATE TABLE IF NOT EXISTS contas (
   conta TEXT NOT NULL
 );
 
--- adiciona coluna tipo em gastos, se não existir
 DO $$
 BEGIN
   IF NOT EXISTS (
