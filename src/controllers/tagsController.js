@@ -22,9 +22,25 @@ router.post('/', async (req, res) => {
     return res.status(400).render('tags/new', { message: '', error: 'Informe uma tag válida', tags });
   }
   try {
-    await query(insertTagSql, [tag]);
+    console.log('Tentando inserir tag:', tag);
+    const result = await query(insertTagSql, [tag]);
+    console.log('Resultado da inserção:', result);
+    console.log('Linhas afetadas:', result.rowCount);
+    console.log('Linhas retornadas:', result.rows);
+
+    // Se não inseriu nenhuma linha, significa que a tag já existe (ON CONFLICT DO NOTHING)
+    if (result.rowCount === 0) {
+      console.log('Tag duplicada detectada via rowCount');
+      const { rows: tags } = await query(listTagsSql);
+      return res.status(400).render('tags/new', { message: '', error: 'Já existe uma tag com esse nome', tags });
+    }
+
     return res.redirect('/tags/new?message=Tag cadastrada');
   } catch (e) {
+    console.error('Erro ao cadastrar tag:', e);
+    console.error('Código do erro:', e.code);
+    console.error('Mensagem do erro:', e.message);
+    console.error('Stack:', e.stack);
     const { rows: tags } = await query(listTagsSql);
     const error = e.code === '23505' ? 'Já existe uma tag com esse nome' : 'Erro ao cadastrar tag';
     return res.status(500).render('tags/new', { message: '', error, tags });
