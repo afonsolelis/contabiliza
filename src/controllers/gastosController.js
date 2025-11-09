@@ -1,5 +1,6 @@
 const express = require('express');
 const { query, loadSql } = require('../db');
+const { randomUUID } = require('crypto');
 
 const router = express.Router();
 
@@ -36,6 +37,7 @@ router.post('/', async (req, res) => {
   const contaId = req.body.conta_id ? Number(req.body.conta_id) : null;
   const tipo = (req.body.tipo || 'pix').toString().toLowerCase();
   const dataEfetivacaoInput = (req.body.data_efetivacao || '').toString();
+  const numParcelas = req.body.num_parcelas ? Number(req.body.num_parcelas) : null;
 
   const valor = Number(valorRaw.replace(',', '.'));
   const allowed = new Set(['pix', 'cartao', 'debito']);
@@ -45,11 +47,47 @@ router.post('/', async (req, res) => {
     return res.status(400).render('gastos/new', { message: 'Dados inválidos', tags, contas });
   }
 
+  // Validar número de parcelas
+  if (numParcelas !== null && (Number.isNaN(numParcelas) || numParcelas < 1 || numParcelas > 999)) {
+    const { rows: tags } = await query(listTagsSql);
+    const { rows: contas } = await query(listContasSql);
+    return res.status(400).render('gastos/new', { message: 'Número de parcelas inválido (1-999)', tags, contas });
+  }
+
   try {
     const efetivacaoDate = parseYmdToUtcStart(dataEfetivacaoInput) || todayUtcStart();
-    await query(insertGastoSql, [descricao, valor, tagId, tipo, contaId, efetivacaoDate.toISOString()]);
-    return res.redirect('/gastos/new?message=Gasto inserido');
+
+    // Se não há parcelas ou é apenas 1 parcela, inserir normalmente
+    if (!numParcelas || numParcelas === 1) {
+      await query(insertGastoSql, [descricao, valor, tagId, tipo, contaId, efetivacaoDate.toISOString(), null, null, null]);
+      return res.redirect('/gastos/new?message=Gasto inserido');
+    }
+
+    // Parcelamento: dividir valor e criar múltiplos registros
+    const grupoId = randomUUID();
+    const valorParcela = valor / numParcelas;
+
+    for (let i = 1; i <= numParcelas; i++) {
+      // Calcular data da parcela (mês a mês)
+      const dataParcela = new Date(efetivacaoDate);
+      dataParcela.setUTCMonth(dataParcela.getUTCMonth() + (i - 1));
+
+      await query(insertGastoSql, [
+        descricao,
+        valorParcela,
+        tagId,
+        tipo,
+        contaId,
+        dataParcela.toISOString(),
+        i,              // parcela_numero
+        numParcelas,    // parcela_total
+        grupoId         // parcela_grupo_id
+      ]);
+    }
+
+    return res.redirect(`/gastos/new?message=Gasto parcelado em ${numParcelas}x de R$ ${valorParcela.toFixed(2)}`);
   } catch (e) {
+    console.error('Erro ao inserir gasto:', e);
     const { rows: tags } = await query(listTagsSql);
     const { rows: contas } = await query(listContasSql);
     return res.status(500).render('gastos/new', { message: 'Erro ao inserir gasto', tags, contas });
