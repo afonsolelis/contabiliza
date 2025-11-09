@@ -8,7 +8,6 @@ const { router: gastosRouter } = require('./src/controllers/gastosController');
 const { router: dashboardRouter } = require('./src/controllers/dashboardController');
 const { router: contasRouter } = require('./src/controllers/contasController');
 const { router: reportsRouter } = require('./src/controllers/reportsController');
-const { runMigrations } = require('./src/db/migrate');
 
 const app = express();
 
@@ -73,13 +72,6 @@ app.use('/relatorios', reportsRouter);
 
 const port = process.env.PORT || 3000;
 
-runMigrations()
-  .then(() => {
-    app.listen(port, () => {
-      console.log(`Servidor iniciado em http://localhost:${port}`);
-    });
-  })
-  .catch((err) => {
-    console.error('Falha ao executar migrações:', err);
-    process.exit(1);
-  });
+app.listen(port, () => {
+  console.log(`Servidor iniciado em http://localhost:${port}`);
+});
