@@ -8,6 +8,8 @@
   <style>
     .table-sm td, .table-sm th { padding: .35rem .5rem; }
     .sticky-col { position: sticky; left: 0; background: var(--bs-body-bg); z-index: 1; }
+    .clickable-cell { cursor: pointer; color: #0d6efd; text-decoration: underline; }
+    .clickable-cell:hover { color: #0a58ca; background-color: rgba(13, 110, 253, 0.1); }
   </style>
   </head>
 <body>
@@ -16,14 +18,11 @@
   <div class="container">
     <h1 class="mb-3">Gastos por tag (mensal)</h1>
 
-    <form method="get" action="/relatorios/tags-mensal" class="row g-3 align-items-end" style="max-width:520px;">
+    <form method="get" action="/relatorios/tags-mensal" id="filterForm" class="row g-3 align-items-end" style="max-width:520px;">
       <div class="col-8 col-sm-6">
         <label class="form-label">Ano
-          <input type="number" name="year" class="form-control" value="<%= year %>" min="2000" max="2100" />
+          <input type="number" name="year" id="yearInput" class="form-control" value="<%= year %>" min="2000" max="2100" />
         </label>
-      </div>
-      <div class="col-4 col-sm-3">
-        <button type="submit" class="btn btn-primary w-100">Aplicar</button>
       </div>
     </form>
 
@@ -52,20 +51,32 @@
           <% (rows || []).forEach(r => { %>
             <% const total = Number(r.jan)+Number(r.fev)+Number(r.mar)+Number(r.abr)+Number(r.mai)+Number(r.jun)+Number(r.jul)+Number(r.ago)+Number(r.setem)+Number(r.out)+Number(r.nov)+Number(r.dez); %>
             <% sumRow.jan+=Number(r.jan); sumRow.fev+=Number(r.fev); sumRow.mar+=Number(r.mar); sumRow.abr+=Number(r.abr); sumRow.mai+=Number(r.mai); sumRow.jun+=Number(r.jun); sumRow.jul+=Number(r.jul); sumRow.ago+=Number(r.ago); sumRow.setem+=Number(r.setem); sumRow.out+=Number(r.out); sumRow.nov+=Number(r.nov); sumRow.dez+=Number(r.dez); %>
+            <%
+              const tagIdParam = r.tag_id === null ? 'null' : r.tag_id;
+              const tagNameParam = encodeURIComponent(r.tag);
+              function monthCell(monthNum, value, monthName) {
+                const val = Number(value);
+                if (val > 0) {
+                  return `<td class="clickable-cell" onclick="window.location='/relatorios/tag-mes-detalhes?year=${year}&month=${monthNum}&tag_id=${tagIdParam}&tag_name=${tagNameParam}'">R$ ${money(val)}</td>`;
+                } else {
+                  return `<td>R$ ${money(val)}</td>`;
+                }
+              }
+            %>
             <tr>
               <td class="sticky-col"><%= r.tag %></td>
-              <td>R$ <%= money(r.jan) %></td>
-              <td>R$ <%= money(r.fev) %></td>
-              <td>R$ <%= money(r.mar) %></td>
-              <td>R$ <%= money(r.abr) %></td>
-              <td>R$ <%= money(r.mai) %></td>
-              <td>R$ <%= money(r.jun) %></td>
-              <td>R$ <%= money(r.jul) %></td>
-              <td>R$ <%= money(r.ago) %></td>
-              <td>R$ <%= money(r.setem) %></td>
-              <td>R$ <%= money(r.out) %></td>
-              <td>R$ <%= money(r.nov) %></td>
-              <td>R$ <%= money(r.dez) %></td>
+              <%- monthCell(1, r.jan, 'Jan') %>
+              <%- monthCell(2, r.fev, 'Fev') %>
+              <%- monthCell(3, r.mar, 'Mar') %>
+              <%- monthCell(4, r.abr, 'Abr') %>
+              <%- monthCell(5, r.mai, 'Mai') %>
+              <%- monthCell(6, r.jun, 'Jun') %>
+              <%- monthCell(7, r.jul, 'Jul') %>
+              <%- monthCell(8, r.ago, 'Ago') %>
+              <%- monthCell(9, r.setem, 'Set') %>
+              <%- monthCell(10, r.out, 'Out') %>
+              <%- monthCell(11, r.nov, 'Nov') %>
+              <%- monthCell(12, r.dez, 'Dez') %>
               <td class="fw-semibold">R$ <%= money(total) %></td>
             </tr>
           <% }) %>
@@ -94,5 +105,11 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Auto-submit form quando o ano for alterado
+    document.getElementById('yearInput').addEventListener('change', function() {
+      document.getElementById('filterForm').submit();
+    });
+  </script>
 </body>
 </html>

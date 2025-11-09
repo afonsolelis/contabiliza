@@ -5,6 +5,7 @@ const router = express.Router();
 
 const tagsMonthlySql = loadSql('reports/tags_monthly.sql');
 const totalsByTagRangeSql = loadSql('reports/totals_by_tag_range.sql');
+const tagMonthDetailsSql = loadSql('reports/tag_month_details.sql');
 
 function parseYmdToUtcStart(ymd) {
   if (!ymd) return null;
@@ -35,6 +36,40 @@ router.get('/tags-mensal', async (req, res) => {
     // eslint-disable-next-line no-console
     console.error('Erro em /relatorios/tags-mensal:', err);
     return res.status(500).send('Erro ao carregar relatório mensal por tag.');
+  }
+});
+
+router.get('/tag-mes-detalhes', async (req, res) => {
+  try {
+    const now = new Date();
+    const year = Number(req.query.year || now.getFullYear());
+    const month = Number(req.query.month);
+    const tagId = req.query.tag_id === 'null' ? null : Number(req.query.tag_id);
+    const tagName = req.query.tag_name || '';
+
+    if (!month || month < 1 || month > 12) {
+      return res.status(400).send('Mês inválido');
+    }
+
+    const { rows } = await query(tagMonthDetailsSql, [year, month, tagId]);
+
+    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+    const total = rows.reduce((acc, row) => acc + Number(row.valor || 0), 0);
+
+    return res.render('reports/tagMonthDetails', {
+      year,
+      month,
+      monthName: monthNames[month - 1],
+      tagName,
+      rows,
+      total
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Erro em /relatorios/tag-mes-detalhes:', err);
+    return res.status(500).send('Erro ao carregar detalhes do mês.');
   }
 });
 

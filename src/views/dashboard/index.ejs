@@ -42,19 +42,16 @@
     <div class="container">
       <h1 class="mb-3">Dashboard</h1>
 
-      <form method="get" action="/dashboard" class="row g-3 align-items-end">
+      <form method="get" action="/dashboard" id="dashboardFilterForm" class="row g-3 align-items-end">
         <div class="col-12 col-sm-4">
           <label class="form-label">Início
-            <input type="date" name="start" value="<%= filters.start %>" class="form-control" />
+            <input type="date" name="start" id="startDate" value="<%= filters.start %>" class="form-control" />
           </label>
         </div>
         <div class="col-12 col-sm-4">
           <label class="form-label">Fim
-            <input type="date" name="end" value="<%= filters.end %>" class="form-control" />
+            <input type="date" name="end" id="endDate" value="<%= filters.end %>" class="form-control" />
           </label>
-        </div>
-        <div class="col-12 col-sm-1">
-          <button type="submit" class="btn btn-primary w-100">Aplicar</button>
         </div>
       </form>
 
@@ -234,6 +231,15 @@
 
         renderCharts();
       })();
+    </script>
+    <script>
+      // Auto-submit form quando as datas forem alteradas
+      document.getElementById('startDate').addEventListener('change', function() {
+        document.getElementById('dashboardFilterForm').submit();
+      });
+      document.getElementById('endDate').addEventListener('change', function() {
+        document.getElementById('dashboardFilterForm').submit();
+      });
     </script>
 </body>
 
