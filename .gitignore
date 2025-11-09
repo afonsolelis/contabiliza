@@ -20,3 +20,10 @@ coverage/
 
 # OS files
 .DS_Store
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.custom
+pgdump_*.custom
