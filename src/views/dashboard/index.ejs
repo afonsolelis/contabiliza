@@ -37,6 +37,12 @@
       if (Number.isNaN(d.getTime())) return '';
       return dateTimeFormatter.format(d);
     };
+    const toIsoString = (date) => {
+      if (!date) return '';
+      const d = date instanceof Date ? date : new Date(date);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toISOString();
+    };
   %>
 
     <div class="container">
@@ -118,9 +124,15 @@
       </section>
 
       <section class="mt-4 mb-5">
-        <h2 class="h4">Gastos no intervalo</h2>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h4 mb-0">Gastos no intervalo</h2>
+          <div id="filterInfo" class="text-muted small" style="display: none;">
+            <span id="filterText"></span>
+            <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="clearFilter">Limpar filtro</button>
+          </div>
+        </div>
         <div class="table-responsive">
-          <table class="table table-striped align-middle">
+          <table class="table table-striped align-middle" id="gastosTable">
             <thead>
               <tr>
                 <th>Efetivado em</th>
@@ -133,7 +145,7 @@
             </thead>
             <tbody>
               <% (gastos || []).forEach(g=> { %>
-                <tr>
+                <tr data-date="<%= toIsoString(g.efetivado_em) %>" data-conta-id="<%= g.conta_id || '' %>">
                   <td>
                     <%= formatUtcDateTime(g.efetivado_em) %>
                   </td>
@@ -177,19 +189,75 @@
         const fmtCurrency0 = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(val) || 0);
         const seriesData = <%- JSON.stringify(series || []) %>;
         const perAccountData = <%- JSON.stringify(totalsByConta || []) %>;
+        const gastosData = <%- JSON.stringify(gastos || []) %>;
         const periodPt = 'dia';
+
+        // Estado do filtro
+        let currentFilter = { type: null, value: null, label: null };
+        let barChart = null;
+        let pieChart = null;
+
         function formatLocalDateFromUtcIso(iso) {
           const d = new Date(iso);
-          // Usa os componentes UTC para construir uma data local no mesmo Y-M-D
-          // evitando o deslocamento de fuso que mostra o dia anterior.
           const day = String(d.getUTCDate()).padStart(2, '0');
           const month = String(d.getUTCMonth() + 1).padStart(2, '0');
           return `${day}-${month}`;
         }
+
         function formatContaLabel(row) {
           const parts = [row?.banco, row?.agencia, row?.conta].filter(Boolean);
           return parts.length ? parts.join(' - ') : 'Conta não informada';
         }
+
+        function getDateOnly(isoDate) {
+          if (!isoDate) return null;
+          return isoDate.split('T')[0];
+        }
+
+        function filterTable(filterType, filterValue, filterLabel) {
+          const rows = document.querySelectorAll('#gastosTable tbody tr');
+          const filterInfo = document.getElementById('filterInfo');
+          const filterText = document.getElementById('filterText');
+
+          // Se clicar no mesmo filtro, desseleciona
+          if (currentFilter.type === filterType && currentFilter.value === filterValue) {
+            // Limpar filtro
+            rows.forEach(row => row.style.display = '');
+            filterInfo.style.display = 'none';
+            currentFilter = { type: null, value: null, label: null };
+
+            // Resetar destaque nos gráficos
+            if (barChart) barChart.resetSeries();
+            if (pieChart) pieChart.resetSeries();
+            return;
+          }
+
+          // Aplicar novo filtro
+          currentFilter = { type: filterType, value: filterValue, label: filterLabel };
+
+          rows.forEach(row => {
+            let shouldShow = false;
+
+            if (filterType === 'date') {
+              const rowDate = getDateOnly(row.getAttribute('data-date'));
+              shouldShow = rowDate === filterValue;
+            } else if (filterType === 'conta') {
+              const rowContaId = row.getAttribute('data-conta-id');
+              shouldShow = rowContaId === filterValue;
+            }
+
+            row.style.display = shouldShow ? '' : 'none';
+          });
+
+          // Mostrar indicador de filtro ativo
+          filterText.textContent = `Filtro ativo: ${filterLabel}`;
+          filterInfo.style.display = 'flex';
+        }
+
+        function clearFilter() {
+          filterTable(null, null, null);
+        }
+
         const categories = seriesData.map(p => formatLocalDateFromUtcIso(p.period));
         const data = seriesData.map(p => Number(p.total));
         const seriesChartEl = document.querySelector('#seriesChart');
@@ -202,35 +270,85 @@
           }
 
           if (seriesChartEl) {
-            new ApexCharts(seriesChartEl, {
-              chart: { type: 'bar', height: 300, toolbar: { show: false } },
+            barChart = new ApexCharts(seriesChartEl, {
+              chart: {
+                type: 'bar',
+                height: 300,
+                toolbar: { show: false },
+                events: {
+                  dataPointSelection: function(event, chartContext, config) {
+                    const dataPointIndex = config.dataPointIndex;
+                    if (dataPointIndex >= 0 && dataPointIndex < seriesData.length) {
+                      const selectedPeriod = seriesData[dataPointIndex].period;
+                      const selectedDate = getDateOnly(selectedPeriod);
+                      const displayDate = formatLocalDateFromUtcIso(selectedPeriod);
+                      filterTable('date', selectedDate, displayDate);
+                    }
+                  }
+                }
+              },
               series: [{ name: `Total por ${periodPt}`, data }],
               xaxis: { categories },
               dataLabels: { enabled: false },
               tooltip: { y: { formatter: (val) => fmtCurrency(val) } },
               yaxis: { labels: { formatter: (val) => fmtCurrency0(val) } },
               colors: ['#0d6efd'],
-              plotOptions: { bar: { borderRadius: 4 } }
-            }).render();
+              plotOptions: { bar: { borderRadius: 4 } },
+              states: {
+                active: {
+                  filter: {
+                    type: 'darken',
+                    value: 0.5
+                  }
+                }
+              }
+            });
+            barChart.render();
           }
 
           if (accountsPieEl && perAccountData.length) {
             const labels = perAccountData.map(formatContaLabel);
             const values = perAccountData.map(row => Number(row.total) || 0);
-            new ApexCharts(accountsPieEl, {
-              chart: { type: 'donut', height: 300 },
+            pieChart = new ApexCharts(accountsPieEl, {
+              chart: {
+                type: 'donut',
+                height: 300,
+                events: {
+                  dataPointSelection: function(event, chartContext, config) {
+                    const dataPointIndex = config.dataPointIndex;
+                    if (dataPointIndex >= 0 && dataPointIndex < perAccountData.length) {
+                      const selectedAccount = perAccountData[dataPointIndex];
+                      const contaId = String(selectedAccount.id || '');
+                      const contaLabel = formatContaLabel(selectedAccount);
+                      filterTable('conta', contaId, contaLabel);
+                    }
+                  }
+                }
+              },
               series: values,
               labels,
               dataLabels: { enabled: false },
               tooltip: { y: { formatter: (val) => fmtCurrency(val) } },
               legend: { position: 'bottom' },
               plotOptions: { pie: { donut: { size: '55%', labels: { show: false } } } },
-              colors: ['#0d6efd', '#6f42c1', '#20c997', '#ffc107', '#dc3545', '#0dcaf0', '#6610f2', '#198754']
-            }).render();
+              colors: ['#0d6efd', '#6f42c1', '#20c997', '#ffc107', '#dc3545', '#0dcaf0', '#6610f2', '#198754'],
+              states: {
+                active: {
+                  filter: {
+                    type: 'darken',
+                    value: 0.5
+                  }
+                }
+              }
+            });
+            pieChart.render();
           }
         }
 
         renderCharts();
+
+        // Botão limpar filtro
+        document.getElementById('clearFilter').addEventListener('click', clearFilter);
       })();
     </script>
     <script>

@@ -11,31 +11,36 @@ const { router: reportsRouter } = require('./src/controllers/reportsController')
 
 const app = express();
 
-const AUTH_USER = process.env.AUTH_USER;
-const AUTH_PASSWORD = process.env.AUTH_PASSWORD;
-if (!AUTH_USER || !AUTH_PASSWORD) {
-  console.error('Missing AUTH_USER or AUTH_PASSWORD env vars. Define them in your .env file.');
-  process.exit(1);
-}
-
-function basicAuthMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization || '';
-  if (authHeader.startsWith('Basic ')) {
-    const base64 = authHeader.slice(6);
-    let decoded = '';
-    try {
-      decoded = Buffer.from(base64, 'base64').toString('utf8');
-    } catch (_) {}
-    const sepIndex = decoded.indexOf(':');
-    const user = sepIndex >= 0 ? decoded.slice(0, sepIndex) : '';
-    const pass = sepIndex >= 0 ? decoded.slice(sepIndex + 1) : '';
-    if (user === AUTH_USER && pass === AUTH_PASSWORD) return next();
-  }
-  res.set('WWW-Authenticate', 'Basic realm="Contabiliza"');
-  return res.status(401).send('Authentication required');
-}
-
-app.use(basicAuthMiddleware);
+// ========================================
+// AUTENTICAÇÃO (desabilitada)
+// Para reativar, descomente o código abaixo
+// ========================================
+// const AUTH_USER = process.env.AUTH_USER;
+// const AUTH_PASSWORD = process.env.AUTH_PASSWORD;
+// if (!AUTH_USER || !AUTH_PASSWORD) {
+//   console.error('Missing AUTH_USER or AUTH_PASSWORD env vars. Define them in your .env file.');
+//   process.exit(1);
+// }
+//
+// function basicAuthMiddleware(req, res, next) {
+//   const authHeader = req.headers.authorization || '';
+//   if (authHeader.startsWith('Basic ')) {
+//     const base64 = authHeader.slice(6);
+//     let decoded = '';
+//     try {
+//       decoded = Buffer.from(base64, 'base64').toString('utf8');
+//     } catch (_) {}
+//     const sepIndex = decoded.indexOf(':');
+//     const user = sepIndex >= 0 ? decoded.slice(0, sepIndex) : '';
+//     const pass = sepIndex >= 0 ? decoded.slice(sepIndex + 1) : '';
+//     if (user === AUTH_USER && pass === AUTH_PASSWORD) return next();
+//   }
+//   res.set('WWW-Authenticate', 'Basic realm="Contabiliza"');
+//   return res.status(401).send('Authentication required');
+// }
+//
+// app.use(basicAuthMiddleware);
+// ========================================
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'src', 'views'));
