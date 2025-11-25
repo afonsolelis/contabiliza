@@ -12,7 +12,7 @@
     "apexcharts": "5.3.6",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
-    "express": "^4.19.2",
+    "express": "^5.1.0",
     "pg": "^8.13.1"
   },
   "devDependencies": {

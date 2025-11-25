@@ -10,356 +10,359 @@
 
 <body>
   <%- include('../partials/header.ejs') %>
-  <%
-    const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
-      timeZone: 'UTC',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-    const dateTimeFormatter = new Intl.DateTimeFormat('pt-BR', {
-      timeZone: 'UTC',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-    const formatUtcDate = (iso) => {
+    <% const dateFormatter=new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' , year: 'numeric' , month: '2-digit' ,
+      day: '2-digit' }); const dateTimeFormatter=new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' , year: 'numeric' ,
+      month: '2-digit' , day: '2-digit' , hour: '2-digit' , minute: '2-digit' }); const formatUtcDate=(iso)=> {
       if (!iso) return '';
       const d = new Date(iso);
       if (Number.isNaN(d.getTime())) return '';
       return dateFormatter.format(d);
-    };
-    const formatUtcDateTime = (iso) => {
+      };
+      const formatUtcDateTime = (iso) => {
       if (!iso) return '';
       const d = new Date(iso);
       if (Number.isNaN(d.getTime())) return '';
       return dateTimeFormatter.format(d);
-    };
-    const toIsoString = (date) => {
+      };
+      const toIsoString = (date) => {
       if (!date) return '';
       const d = date instanceof Date ? date : new Date(date);
       if (Number.isNaN(d.getTime())) return '';
       return d.toISOString();
-    };
-  %>
+      };
+      %>
 
-    <div class="container">
-      <h1 class="mb-3">Dashboard</h1>
+      <div class="container">
+        <h1 class="mb-3">Dashboard</h1>
 
-      <form method="get" action="/dashboard" id="dashboardFilterForm" class="row g-3 align-items-end">
-        <div class="col-12 col-sm-4">
-          <label class="form-label">Início
-            <input type="date" name="start" id="startDate" value="<%= filters.start %>" class="form-control" />
-          </label>
-        </div>
-        <div class="col-12 col-sm-4">
-          <label class="form-label">Fim
-            <input type="date" name="end" id="endDate" value="<%= filters.end %>" class="form-control" />
-          </label>
-        </div>
-      </form>
+        <form method="get" action="/dashboard" id="dashboardFilterForm" class="row g-3 align-items-end">
+          <div class="col-12 col-sm-4">
+            <label class="form-label">Início
+              <input type="date" name="start" id="startDate" value="<%= filters.start %>" class="form-control" />
+            </label>
+          </div>
+          <div class="col-12 col-sm-4">
+            <label class="form-label">Fim
+              <input type="date" name="end" id="endDate" value="<%= filters.end %>" class="form-control" />
+            </label>
+          </div>
+        </form>
 
-      <section class="mt-4">
-        <h2 class="h4">Série temporal</h2>
-        <div class="row g-3 mb-3">
-          <div class="col-12 col-md-4">
-            <div class="card text-bg-light">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <div class="fw-semibold">Total no período</div>
-                    <div class="fs-4">R$ <%= money(totalRange) %>
+        <section class="mt-4">
+          <h2 class="h4">Série temporal</h2>
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-4">
+              <div class="card text-bg-light">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <div class="fw-semibold">Total no período</div>
+                      <div class="fs-4">R$ <%= money(totalRange) %>
+                      </div>
+                      <div class="small mt-1"><%= daysDiff %> <%= daysDiff === 1 ? 'dia' : 'dias' %> filtrado<%= daysDiff === 1 ? '' : 's' %></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="card text-bg-info text-white">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <div class="fw-semibold">Média diária</div>
+                      <div class="fs-4">R$ <%= money(dailyAverage) %>
+                      </div>
+                      <div class="small mt-1"><%= daysDiff %> <%= daysDiff === 1 ? 'dia' : 'dias' %></div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-        <div class="row g-3 mb-3">
-          <div class="col-12 col-lg-7">
-            <div class="card h-100">
-              <div class="card-body">
-                <div class="fw-semibold mb-2">Total por dia</div>
-                <div id="seriesChart" style="height:300px;"></div>
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-lg-7">
+              <div class="card h-100">
+                <div class="card-body">
+                  <div class="fw-semibold mb-2">Total por dia</div>
+                  <div id="seriesChart" style="height:300px;"></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-5">
+              <div class="card h-100">
+                <div class="card-body">
+                  <div class="fw-semibold mb-2">Distribuição por conta</div>
+                  <% if ((totalsByConta || []).length) { %>
+                    <div id="accountsPieChart" style="height:300px;"></div>
+                    <% } else { %>
+                      <p class="text-muted text-center my-5">Sem gastos por conta no período filtrado.</p>
+                      <% } %>
+                </div>
               </div>
             </div>
           </div>
-          <div class="col-12 col-lg-5">
-            <div class="card h-100">
-              <div class="card-body">
-                <div class="fw-semibold mb-2">Distribuição por conta</div>
-                <% if ((totalsByConta || []).length) { %>
-                  <div id="accountsPieChart" style="height:300px;"></div>
-                <% } else { %>
-                  <p class="text-muted text-center my-5">Sem gastos por conta no período filtrado.</p>
-                <% } %>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-striped align-middle">
-            <thead>
-              <tr>
-                <th>Período</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% (series || []).forEach(p=> { %>
+          <div class="table-responsive">
+            <table class="table table-striped align-middle">
+              <thead>
                 <tr>
-                  <td>
-                    <%= formatUtcDate(p.period) %>
-                  </td>
-                  <td>R$ <%= money(p.total) %>
-                  </td>
+                  <th>Período</th>
+                  <th>Total</th>
                 </tr>
-                <% }) %>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="mt-4 mb-5">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h2 class="h4 mb-0">Gastos no intervalo</h2>
-          <div id="filterInfo" class="text-muted small" style="display: none;">
-            <span id="filterText"></span>
-            <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="clearFilter">Limpar filtro</button>
+              </thead>
+              <tbody>
+                <% (series || []).forEach(p=> { %>
+                  <tr>
+                    <td>
+                      <%= formatUtcDate(p.period) %>
+                    </td>
+                    <td>R$ <%= money(p.total) %>
+                    </td>
+                  </tr>
+                  <% }) %>
+              </tbody>
+            </table>
           </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-striped align-middle" id="gastosTable">
-            <thead>
-              <tr>
-                <th>Efetivado em</th>
-                <th>Descrição</th>
-                <th>Tag</th>
-                <th>Tipo</th>
-                <th>Valor</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <% (gastos || []).forEach(g=> { %>
-                <tr data-date="<%= toIsoString(g.efetivado_em) %>" data-conta-id="<%= g.conta_id || '' %>">
-                  <td>
-                    <%= formatUtcDateTime(g.efetivado_em) %>
-                  </td>
-                  <td>
-                    <%= g.descricao_gasto %>
-                  </td>
-                  <td>
-                    <%= g.tag || '' %>
-                  </td>
-                  <td>
-                    <%= g.tipo %>
-                  </td>
-                  <td>R$ <%= money(g.valor) %>
-                  </td>
-                  <td class="text-end"><a class="btn btn-sm btn-outline-primary"
-                      href="/gastos/<%= g.id %>/edit">Editar</a></td>
+        </section>
+
+        <section class="mt-4 mb-5">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h4 mb-0">Gastos no intervalo</h2>
+            <div id="filterInfo" class="text-muted small" style="display: none;">
+              <span id="filterText"></span>
+              <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="clearFilter">Limpar
+                filtro</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-striped align-middle" id="gastosTable">
+              <thead>
+                <tr>
+                  <th>Efetivado em</th>
+                  <th>Descrição</th>
+                  <th>Tag</th>
+                  <th>Tipo</th>
+                  <th>Valor</th>
+                  <th></th>
                 </tr>
-                <% }) %>
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
+              </thead>
+              <tbody>
+                <% (gastos || []).forEach(g=> { %>
+                  <tr data-date="<%= toIsoString(g.efetivado_em) %>" data-conta-id="<%= g.conta_id || '' %>">
+                    <td>
+                      <%= formatUtcDateTime(g.efetivado_em) %>
+                    </td>
+                    <td>
+                      <%= g.descricao_gasto %>
+                    </td>
+                    <td>
+                      <%= g.tag || '' %>
+                    </td>
+                    <td>
+                      <%= g.tipo %>
+                    </td>
+                    <td>R$ <%= money(g.valor) %>
+                    </td>
+                    <td class="text-end"><a class="btn btn-sm btn-outline-primary"
+                        href="/gastos/<%= g.id %>/edit">Editar</a></td>
+                  </tr>
+                  <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Carrega ApexCharts local (evita CDN) -->
-    <script src="/vendor/apexcharts/dist/apexcharts.min.js"></script>
-    <script>
-      // Fallback para CDN caso o bundle local não esteja disponível
-      (function ensureApexCharts(){
-        if (typeof ApexCharts === 'undefined') {
-          var s = document.createElement('script');
-          s.src = 'https://cdn.jsdelivr.net/npm/apexcharts@5.3.6';
-          document.head.appendChild(s);
-        }
-      })();
-    </script>
-    <script>
-          (function () {
-        const fmtCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(val) || 0);
-        const fmtCurrency0 = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(val) || 0);
-        const seriesData = <%- JSON.stringify(series || []) %>;
-        const perAccountData = <%- JSON.stringify(totalsByConta || []) %>;
-        const gastosData = <%- JSON.stringify(gastos || []) %>;
-        const periodPt = 'dia';
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+      <!-- Carrega ApexCharts local (evita CDN) -->
+      <script src="/vendor/apexcharts/dist/apexcharts.min.js"></script>
+      <script>
+        // Fallback para CDN caso o bundle local não esteja disponível
+        (function ensureApexCharts() {
+          if (typeof ApexCharts === 'undefined') {
+            var s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/apexcharts@5.3.6';
+            document.head.appendChild(s);
+          }
+        })();
+      </script>
+      <script>
+        (function () {
+          const fmtCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(val) || 0);
+          const fmtCurrency0 = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(val) || 0);
+          const seriesData = <%- JSON.stringify(series || []) %>;
+          const perAccountData = <%- JSON.stringify(totalsByConta || []) %>;
+          const gastosData = <%- JSON.stringify(gastos || []) %>;
+          const periodPt = 'dia';
 
-        // Estado do filtro
-        let currentFilter = { type: null, value: null, label: null };
-        let barChart = null;
-        let pieChart = null;
+          // Estado do filtro
+          let currentFilter = { type: null, value: null, label: null };
+          let barChart = null;
+          let pieChart = null;
 
-        function formatLocalDateFromUtcIso(iso) {
-          const d = new Date(iso);
-          const day = String(d.getUTCDate()).padStart(2, '0');
-          const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-          return `${day}-${month}`;
-        }
-
-        function formatContaLabel(row) {
-          const parts = [row?.banco, row?.agencia, row?.conta].filter(Boolean);
-          return parts.length ? parts.join(' - ') : 'Conta não informada';
-        }
-
-        function getDateOnly(isoDate) {
-          if (!isoDate) return null;
-          return isoDate.split('T')[0];
-        }
-
-        function filterTable(filterType, filterValue, filterLabel) {
-          const rows = document.querySelectorAll('#gastosTable tbody tr');
-          const filterInfo = document.getElementById('filterInfo');
-          const filterText = document.getElementById('filterText');
-
-          // Se clicar no mesmo filtro, desseleciona
-          if (currentFilter.type === filterType && currentFilter.value === filterValue) {
-            // Limpar filtro
-            rows.forEach(row => row.style.display = '');
-            filterInfo.style.display = 'none';
-            currentFilter = { type: null, value: null, label: null };
-
-            // Resetar destaque nos gráficos
-            if (barChart) barChart.resetSeries();
-            if (pieChart) pieChart.resetSeries();
-            return;
+          function formatLocalDateFromUtcIso(iso) {
+            const d = new Date(iso);
+            const day = String(d.getUTCDate()).padStart(2, '0');
+            const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+            return `${day}-${month}`;
           }
 
-          // Aplicar novo filtro
-          currentFilter = { type: filterType, value: filterValue, label: filterLabel };
+          function formatContaLabel(row) {
+            const parts = [row?.banco, row?.agencia, row?.conta].filter(Boolean);
+            return parts.length ? parts.join(' - ') : 'Conta não informada';
+          }
 
-          rows.forEach(row => {
-            let shouldShow = false;
+          function getDateOnly(isoDate) {
+            if (!isoDate) return null;
+            return isoDate.split('T')[0];
+          }
 
-            if (filterType === 'date') {
-              const rowDate = getDateOnly(row.getAttribute('data-date'));
-              shouldShow = rowDate === filterValue;
-            } else if (filterType === 'conta') {
-              const rowContaId = row.getAttribute('data-conta-id');
-              shouldShow = rowContaId === filterValue;
+          function filterTable(filterType, filterValue, filterLabel) {
+            const rows = document.querySelectorAll('#gastosTable tbody tr');
+            const filterInfo = document.getElementById('filterInfo');
+            const filterText = document.getElementById('filterText');
+
+            // Se clicar no mesmo filtro, desseleciona
+            if (currentFilter.type === filterType && currentFilter.value === filterValue) {
+              // Limpar filtro
+              rows.forEach(row => row.style.display = '');
+              filterInfo.style.display = 'none';
+              currentFilter = { type: null, value: null, label: null };
+
+              // Resetar destaque nos gráficos
+              if (barChart) barChart.resetSeries();
+              if (pieChart) pieChart.resetSeries();
+              return;
             }
 
-            row.style.display = shouldShow ? '' : 'none';
-          });
+            // Aplicar novo filtro
+            currentFilter = { type: filterType, value: filterValue, label: filterLabel };
 
-          // Mostrar indicador de filtro ativo
-          filterText.textContent = `Filtro ativo: ${filterLabel}`;
-          filterInfo.style.display = 'flex';
-        }
+            rows.forEach(row => {
+              let shouldShow = false;
 
-        function clearFilter() {
-          filterTable(null, null, null);
-        }
+              if (filterType === 'date') {
+                const rowDate = getDateOnly(row.getAttribute('data-date'));
+                shouldShow = rowDate === filterValue;
+              } else if (filterType === 'conta') {
+                const rowContaId = row.getAttribute('data-conta-id');
+                shouldShow = rowContaId === filterValue;
+              }
 
-        const categories = seriesData.map(p => formatLocalDateFromUtcIso(p.period));
-        const data = seriesData.map(p => Number(p.total));
-        const seriesChartEl = document.querySelector('#seriesChart');
-        const accountsPieEl = document.querySelector('#accountsPieChart');
+              row.style.display = shouldShow ? '' : 'none';
+            });
 
-        function renderCharts() {
-          if (typeof ApexCharts === 'undefined') {
-            console.warn('ApexCharts não carregado ainda. Tentando novamente...');
-            return setTimeout(renderCharts, 300);
+            // Mostrar indicador de filtro ativo
+            filterText.textContent = `Filtro ativo: ${filterLabel}`;
+            filterInfo.style.display = 'flex';
           }
 
-          if (seriesChartEl) {
-            barChart = new ApexCharts(seriesChartEl, {
-              chart: {
-                type: 'bar',
-                height: 300,
-                toolbar: { show: false },
-                events: {
-                  dataPointSelection: function(event, chartContext, config) {
-                    const dataPointIndex = config.dataPointIndex;
-                    if (dataPointIndex >= 0 && dataPointIndex < seriesData.length) {
-                      const selectedPeriod = seriesData[dataPointIndex].period;
-                      const selectedDate = getDateOnly(selectedPeriod);
-                      const displayDate = formatLocalDateFromUtcIso(selectedPeriod);
-                      filterTable('date', selectedDate, displayDate);
+          function clearFilter() {
+            filterTable(null, null, null);
+          }
+
+          const categories = seriesData.map(p => formatLocalDateFromUtcIso(p.period));
+          const data = seriesData.map(p => Number(p.total));
+          const seriesChartEl = document.querySelector('#seriesChart');
+          const accountsPieEl = document.querySelector('#accountsPieChart');
+
+          function renderCharts() {
+            if (typeof ApexCharts === 'undefined') {
+              console.warn('ApexCharts não carregado ainda. Tentando novamente...');
+              return setTimeout(renderCharts, 300);
+            }
+
+            if (seriesChartEl) {
+              barChart = new ApexCharts(seriesChartEl, {
+                chart: {
+                  type: 'bar',
+                  height: 300,
+                  toolbar: { show: false },
+                  events: {
+                    dataPointSelection: function (event, chartContext, config) {
+                      const dataPointIndex = config.dataPointIndex;
+                      if (dataPointIndex >= 0 && dataPointIndex < seriesData.length) {
+                        const selectedPeriod = seriesData[dataPointIndex].period;
+                        const selectedDate = getDateOnly(selectedPeriod);
+                        const displayDate = formatLocalDateFromUtcIso(selectedPeriod);
+                        filterTable('date', selectedDate, displayDate);
+                      }
+                    }
+                  }
+                },
+                series: [{ name: `Total por ${periodPt}`, data }],
+                xaxis: { categories },
+                dataLabels: { enabled: false },
+                tooltip: { y: { formatter: (val) => fmtCurrency(val) } },
+                yaxis: { labels: { formatter: (val) => fmtCurrency0(val) } },
+                colors: ['#0d6efd'],
+                plotOptions: { bar: { borderRadius: 4 } },
+                states: {
+                  active: {
+                    filter: {
+                      type: 'darken',
+                      value: 0.5
                     }
                   }
                 }
-              },
-              series: [{ name: `Total por ${periodPt}`, data }],
-              xaxis: { categories },
-              dataLabels: { enabled: false },
-              tooltip: { y: { formatter: (val) => fmtCurrency(val) } },
-              yaxis: { labels: { formatter: (val) => fmtCurrency0(val) } },
-              colors: ['#0d6efd'],
-              plotOptions: { bar: { borderRadius: 4 } },
-              states: {
-                active: {
-                  filter: {
-                    type: 'darken',
-                    value: 0.5
-                  }
-                }
-              }
-            });
-            barChart.render();
-          }
+              });
+              barChart.render();
+            }
 
-          if (accountsPieEl && perAccountData.length) {
-            const labels = perAccountData.map(formatContaLabel);
-            const values = perAccountData.map(row => Number(row.total) || 0);
-            pieChart = new ApexCharts(accountsPieEl, {
-              chart: {
-                type: 'donut',
-                height: 300,
-                events: {
-                  dataPointSelection: function(event, chartContext, config) {
-                    const dataPointIndex = config.dataPointIndex;
-                    if (dataPointIndex >= 0 && dataPointIndex < perAccountData.length) {
-                      const selectedAccount = perAccountData[dataPointIndex];
-                      const contaId = String(selectedAccount.id || '');
-                      const contaLabel = formatContaLabel(selectedAccount);
-                      filterTable('conta', contaId, contaLabel);
+            if (accountsPieEl && perAccountData.length) {
+              const labels = perAccountData.map(formatContaLabel);
+              const values = perAccountData.map(row => Number(row.total) || 0);
+              pieChart = new ApexCharts(accountsPieEl, {
+                chart: {
+                  type: 'donut',
+                  height: 300,
+                  events: {
+                    dataPointSelection: function (event, chartContext, config) {
+                      const dataPointIndex = config.dataPointIndex;
+                      if (dataPointIndex >= 0 && dataPointIndex < perAccountData.length) {
+                        const selectedAccount = perAccountData[dataPointIndex];
+                        const contaId = String(selectedAccount.id || '');
+                        const contaLabel = formatContaLabel(selectedAccount);
+                        filterTable('conta', contaId, contaLabel);
+                      }
+                    }
+                  }
+                },
+                series: values,
+                labels,
+                dataLabels: { enabled: false },
+                tooltip: { y: { formatter: (val) => fmtCurrency(val) } },
+                legend: { position: 'bottom' },
+                plotOptions: { pie: { donut: { size: '55%', labels: { show: false } } } },
+                colors: ['#0d6efd', '#6f42c1', '#20c997', '#ffc107', '#dc3545', '#0dcaf0', '#6610f2', '#198754'],
+                states: {
+                  active: {
+                    filter: {
+                      type: 'darken',
+                      value: 0.5
                     }
                   }
                 }
-              },
-              series: values,
-              labels,
-              dataLabels: { enabled: false },
-              tooltip: { y: { formatter: (val) => fmtCurrency(val) } },
-              legend: { position: 'bottom' },
-              plotOptions: { pie: { donut: { size: '55%', labels: { show: false } } } },
-              colors: ['#0d6efd', '#6f42c1', '#20c997', '#ffc107', '#dc3545', '#0dcaf0', '#6610f2', '#198754'],
-              states: {
-                active: {
-                  filter: {
-                    type: 'darken',
-                    value: 0.5
-                  }
-                }
-              }
-            });
-            pieChart.render();
+              });
+              pieChart.render();
+            }
           }
-        }
 
-        renderCharts();
+          renderCharts();
 
-        // Botão limpar filtro
-        document.getElementById('clearFilter').addEventListener('click', clearFilter);
-      })();
-    </script>
-    <script>
-      // Auto-submit form quando as datas forem alteradas
-      document.getElementById('startDate').addEventListener('change', function() {
-        document.getElementById('dashboardFilterForm').submit();
-      });
-      document.getElementById('endDate').addEventListener('change', function() {
-        document.getElementById('dashboardFilterForm').submit();
-      });
-    </script>
+          // Botão limpar filtro
+          document.getElementById('clearFilter').addEventListener('click', clearFilter);
+        })();
+      </script>
+      <script>
+        // Auto-submit form quando as datas forem alteradas
+        document.getElementById('startDate').addEventListener('change', function () {
+          document.getElementById('dashboardFilterForm').submit();
+        });
+        document.getElementById('endDate').addEventListener('change', function () {
+          document.getElementById('dashboardFilterForm').submit();
+        });
+      </script>
 </body>
 
 </html>

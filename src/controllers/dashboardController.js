@@ -49,6 +49,9 @@ router.get('/', async (req, res) => {
     const { rows: sumRows } = await query(sumByRangeSql, [startIso, endIso]);
     const totalRange = Number(sumRows?.[0]?.total || 0);
 
+    const daysDiff = Math.ceil((endExclusive - startDate) / (1000 * 60 * 60 * 24));
+    const dailyAverage = daysDiff > 0 ? totalRange / daysDiff : 0;
+
     return res.render('dashboard/index', {
       filters: {
         start: (req.query.start || new Date(defaultStart).toISOString().slice(0, 10)),
@@ -57,7 +60,9 @@ router.get('/', async (req, res) => {
       series,
       totalsByConta,
       gastos,
-      totalRange
+      totalRange,
+      daysDiff,
+      dailyAverage
     });
   } catch (err) {
     return res.status(500).send('Erro ao carregar dashboard. Verifique a conexão com o banco de dados.');
