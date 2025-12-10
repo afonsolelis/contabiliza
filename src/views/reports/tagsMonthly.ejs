@@ -55,7 +55,6 @@
       <table class="table table-striped table-sm align-middle">
         <thead>
           <tr>
-            <th class="sticky-col">Tag</th>
             <th>Jan</th>
             <th>Fev</th>
             <th>Mar</th>
@@ -69,6 +68,8 @@
             <th>Nov</th>
             <th>Dez</th>
             <th>Total</th>
+            <th>Média 12m</th>
+            <th>Tag</th>
           </tr>
         </thead>
         <tbody>
@@ -89,7 +90,6 @@
               }
             %>
             <tr>
-              <td class="sticky-col"><%= r.tag %></td>
               <%- monthCell(1, r.jan, 'Jan') %>
               <%- monthCell(2, r.fev, 'Fev') %>
               <%- monthCell(3, r.mar, 'Mar') %>
@@ -103,13 +103,14 @@
               <%- monthCell(11, r.nov, 'Nov') %>
               <%- monthCell(12, r.dez, 'Dez') %>
               <td class="fw-semibold"><%= money(total) %></td>
+              <td><%= money(total / 12) %></td>
+              <td><%= r.tag %></td>
             </tr>
           <% }) %>
         </tbody>
         <tfoot>
           <% const totalGeral = sumRow.jan+sumRow.fev+sumRow.mar+sumRow.abr+sumRow.mai+sumRow.jun+sumRow.jul+sumRow.ago+sumRow.setem+sumRow.out+sumRow.nov+sumRow.dez; %>
           <tr class="table-secondary">
-            <th class="sticky-col">Total</th>
             <th><%= money(sumRow.jan) %></th>
             <th><%= money(sumRow.fev) %></th>
             <th><%= money(sumRow.mar) %></th>
@@ -123,6 +124,8 @@
             <th><%= money(sumRow.nov) %></th>
             <th><%= money(sumRow.dez) %></th>
             <th class="fw-bold"><%= money(totalGeral) %></th>
+            <th class="fw-bold"><%= money(totalGeral / 12) %></th>
+            <th>Total</th>
           </tr>
         </tfoot>
       </table>

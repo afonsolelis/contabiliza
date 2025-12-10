@@ -14,19 +14,16 @@
   <div class="container">
     <h1 class="mb-3">Totais por tag (período)</h1>
 
-    <form method="get" action="/relatorios/totais-periodo" class="row g-3 align-items-end">
+    <form method="get" action="/relatorios/totais-periodo" class="row g-3 align-items-end" id="periodForm">
       <div class="col-12 col-sm-4 col-lg-3">
         <label class="form-label">Início
-          <input type="date" name="start" value="<%= filters.start %>" class="form-control" />
+          <input type="date" name="start" value="<%= filters.start %>" class="form-control" id="startDate" />
         </label>
       </div>
       <div class="col-12 col-sm-4 col-lg-3">
         <label class="form-label">Fim
-          <input type="date" name="end" value="<%= filters.end %>" class="form-control" />
+          <input type="date" name="end" value="<%= filters.end %>" class="form-control" id="endDate" />
         </label>
-      </div>
-      <div class="col-12 col-sm-2 col-lg-2">
-        <button type="submit" class="btn btn-primary w-100">Aplicar</button>
       </div>
     </form>
 
@@ -85,6 +82,22 @@
         document.head.appendChild(s);
       }
     })();
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('periodForm');
+      const startDate = document.getElementById('startDate');
+      const endDate = document.getElementById('endDate');
+
+      function submitForm() {
+        if (startDate.value && endDate.value) {
+          form.submit();
+        }
+      }
+
+      startDate.addEventListener('change', submitForm);
+      endDate.addEventListener('change', submitForm);
+    });
   </script>
   <script>
     (function () {
