@@ -6,6 +6,7 @@ const router = express.Router();
 const tagsMonthlySql = loadSql('reports/tags_monthly.sql');
 const totalsByTagRangeSql = loadSql('reports/totals_by_tag_range.sql');
 const tagMonthDetailsSql = loadSql('reports/tag_month_details.sql');
+const expensesByTagRangeSql = loadSql('reports/expenses_by_tag_range.sql');
 
 function parseYmdToUtcStart(ymd) {
   if (!ymd) return null;
@@ -74,10 +75,19 @@ router.get('/tag-mes-detalhes', async (req, res) => {
 router.get('/totais-periodo', async (req, res) => {
   try {
     const now = new Date();
-    const todayLocalYmd = formatLocalYmd(now);
-    const todayStartUtc = parseYmdToUtcStart(todayLocalYmd);
-    const defaultStart = addDays(todayStartUtc, -6);
-    const defaultEndExclusive = addDays(todayStartUtc, 1);
+    const defaultStart = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      1,
+      0, 0, 0, 0
+    ));
+    const lastDayOfMonth = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth() + 1,
+      0,
+      0, 0, 0, 0
+    ));
+    const defaultEndExclusive = addDays(lastDayOfMonth, 1);
 
     const startParsed = parseYmdToUtcStart(req.query.start);
     const endParsed = parseYmdToUtcStart(req.query.end);
@@ -94,7 +104,7 @@ router.get('/totais-periodo', async (req, res) => {
     return res.render('reports/periodTotals', {
       filters: {
         start: (req.query.start || new Date(defaultStart).toISOString().slice(0, 10)),
-        end: (req.query.end || new Date(todayStartUtc).toISOString().slice(0, 10))
+        end: (req.query.end || new Date(lastDayOfMonth).toISOString().slice(0, 10))
       },
       rows,
       totalRange
@@ -102,6 +112,37 @@ router.get('/totais-periodo', async (req, res) => {
   } catch (err) {
     console.error('Erro em /relatorios/totais-periodo:', err);
     return res.status(500).send('Erro ao carregar totais do período.');
+  }
+});
+
+router.get('/api/expenses-by-tag', async (req, res) => {
+  try {
+    const { start, end, tag } = req.query;
+
+    if (!start || !end || !tag) {
+      return res.status(400).json({ error: 'Parâmetros start, end e tag são obrigatórios' });
+    }
+
+    const startParsed = parseYmdToUtcStart(start);
+    const endParsed = parseYmdToUtcStart(end);
+
+    if (!startParsed || !endParsed) {
+      return res.status(400).json({ error: 'Datas inválidas' });
+    }
+
+    const startIso = startParsed.toISOString();
+    const endExclusive = addDays(endParsed, 1);
+    const endIso = endExclusive.toISOString();
+
+    // Se a tag for "— sem tag —", passar null para a query
+    const tagParam = tag === '— sem tag —' ? null : tag;
+
+    const { rows } = await query(expensesByTagRangeSql, [startIso, endIso, tagParam]);
+
+    return res.json({ expenses: rows });
+  } catch (err) {
+    console.error('Erro em /relatorios/api/expenses-by-tag:', err);
+    return res.status(500).json({ error: 'Erro ao buscar gastos' });
   }
 });
 
