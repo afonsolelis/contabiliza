@@ -29,8 +29,19 @@ router.get('/', async (req, res) => {
       now.getUTCDate(),
       0, 0, 0, 0
     ));
-    const defaultStart = addDays(todayStartUtc, -6);
-    const defaultEndExclusive = addDays(todayStartUtc, 1);
+    const defaultStart = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      1,
+      0, 0, 0, 0
+    ));
+    const lastDayOfMonth = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth() + 1,
+      0,
+      0, 0, 0, 0
+    ));
+    const defaultEndExclusive = addDays(lastDayOfMonth, 1);
 
     const startParsed = parseYmdToUtcStart(req.query.start);
     const endParsed = parseYmdToUtcStart(req.query.end);
@@ -55,7 +66,7 @@ router.get('/', async (req, res) => {
     return res.render('dashboard/index', {
       filters: {
         start: (req.query.start || new Date(defaultStart).toISOString().slice(0, 10)),
-        end: (req.query.end || new Date(todayStartUtc).toISOString().slice(0, 10))
+        end: (req.query.end || new Date(lastDayOfMonth).toISOString().slice(0, 10))
       },
       series,
       totalsByConta,

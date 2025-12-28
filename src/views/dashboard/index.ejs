@@ -46,6 +46,13 @@
               <input type="date" name="end" id="endDate" value="<%= filters.end %>" class="form-control" />
             </label>
           </div>
+          <div class="col-12 col-sm-4">
+            <div class="btn-group w-100" role="group">
+              <button type="button" class="btn btn-outline-primary" id="prevMonth">←</button>
+              <button type="button" class="btn btn-outline-secondary" id="currentMonth">=</button>
+              <button type="button" class="btn btn-outline-primary" id="nextMonth">→</button>
+            </div>
+          </div>
         </form>
 
         <section class="mt-4">
@@ -361,6 +368,35 @@
         });
         document.getElementById('endDate').addEventListener('change', function () {
           document.getElementById('dashboardFilterForm').submit();
+        });
+
+        // Navegação entre meses
+        function navigateToMonth(offset) {
+          const currentStart = document.getElementById('startDate').value;
+          const date = currentStart ? new Date(currentStart + 'T00:00:00Z') : new Date();
+
+          const targetYear = date.getUTCFullYear();
+          const targetMonth = date.getUTCMonth() + offset;
+
+          const firstDay = new Date(Date.UTC(targetYear, targetMonth, 1));
+          const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0));
+
+          const startParam = firstDay.toISOString().slice(0, 10);
+          const endParam = lastDay.toISOString().slice(0, 10);
+
+          window.location.href = `/dashboard?start=${startParam}&end=${endParam}`;
+        }
+
+        document.getElementById('prevMonth').addEventListener('click', function() {
+          navigateToMonth(-1);
+        });
+
+        document.getElementById('currentMonth').addEventListener('click', function() {
+          window.location.href = '/dashboard';
+        });
+
+        document.getElementById('nextMonth').addEventListener('click', function() {
+          navigateToMonth(1);
         });
       </script>
 </body>
