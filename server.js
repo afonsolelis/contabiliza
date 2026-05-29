@@ -8,6 +8,7 @@ const { router: gastosRouter } = require('./src/controllers/gastosController');
 const { router: dashboardRouter } = require('./src/controllers/dashboardController');
 const { router: contasRouter } = require('./src/controllers/contasController');
 const { router: reportsRouter } = require('./src/controllers/reportsController');
+const { router: assistenteRouter } = require('./src/controllers/assistenteController');
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.set('views', path.join(__dirname, 'src', 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/vendor', express.static(path.join(__dirname, 'node_modules')));
 app.use(bodyParser({ extended: true }));
+app.use(express.json());
 
 app.locals.money = (n) => {
   const num = Number(n);
@@ -74,6 +76,7 @@ app.use('/gastos', gastosRouter);
 app.use('/dashboard', dashboardRouter);
 app.use('/contas', contasRouter);
 app.use('/relatorios', reportsRouter);
+app.use('/assistente', assistenteRouter);
 
 const port = process.env.PORT || 3000;
 

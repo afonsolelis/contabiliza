@@ -9,6 +9,7 @@
     "dev": "nodemon --ext js,ejs,sql,json server.js"
   },
   "dependencies": {
+    "@google/genai": "^2.7.0",
     "apexcharts": "5.3.6",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",

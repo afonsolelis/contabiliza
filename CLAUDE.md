@@ -14,11 +14,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `src/db/index.js` prefers `DATABASE_URL` (with optional `PGSSL=true`) over individual `PG*` vars. `.env` is loaded once from `server.js` via `dotenv`. The legacy Basic Auth middleware is commented out in `server.js` — leave it in place; do not re-enable without being asked.
 
+The chat assistant needs `GEMINI_API_KEY` (Google Gemini, an `AIza…` key); `GEMINI_MODEL` is optional (defaults to `gemini-2.5-flash`). Without the key the app still boots — the assistant just returns a "configure GEMINI_API_KEY" message. The key is read at module load by `src/services/geminiClient.js`; it lives in `.env` only (gitignored) with a placeholder in `.env.example`.
+
 ## Architecture
 
 Classic Express-5 + EJS server. No build step, no frontend framework. Request flow:
 
-1. `server.js` registers view engine, static middlewares (`public/` and `node_modules` re-exposed as `/vendor` so EJS templates can load `apexcharts` directly), money/currency locals, and mounts five routers under `/tags`, `/gastos`, `/dashboard`, `/contas`, `/relatorios`. `/` redirects to `/dashboard`.
+1. `server.js` registers view engine, static middlewares (`public/` and `node_modules` re-exposed as `/vendor` so EJS templates can load `apexcharts` directly), body parsers (`urlencoded` for forms, `express.json()` for the assistant's JSON API), money/currency locals, and mounts six routers under `/tags`, `/gastos`, `/dashboard`, `/contas`, `/relatorios`, `/assistente`. `/` redirects to `/dashboard`.
 2. Each controller in `src/controllers/*Controller.js` exports `{ router }` and uses `query` + `loadSql` from `src/db`.
 3. `loadSql('<feature>/<name>.sql')` reads raw SQL from `src/models/<feature>/` **at module load time**. Every SQL statement the app runs lives as a standalone file there — **do not inline SQL in controllers**. Adding a new query means adding a `.sql` file and a `loadSql(...)` binding at the top of the controller.
 4. Views live in `src/views/<feature>/*.ejs` with `partials/header.ejs` shared. Reports and dashboard load ApexCharts from `/vendor/apexcharts/...`.
@@ -42,6 +44,15 @@ Every date-filtered query uses the pattern `data_efetivacao >= $start AND data_e
 ### Reports
 
 `reportsController.js` renders three pages (`/relatorios/tags-mensal`, `/relatorios/totais-periodo`, `/relatorios/tag-mes-detalhes`) and exposes one JSON endpoint (`/relatorios/api/expenses-by-tag`) used by client-side drill-down. The sentinel string `'— sem tag —'` (with em-dash) represents "no tag" in querystring params and maps to SQL `NULL`.
+
+### AI chat assistant (`/assistente`)
+
+`assistenteController.js` is an in-app port of `specs/input_gastos.md`: instead of Claude running `psql`, the app drives **Google Gemini** (`@google/genai`, `gemini-2.5-flash`) via **function calling**. `GET /assistente` renders the chat page; `POST /assistente/mensagem` takes `{ message, history }` (history is text-only turns kept client-side and posted back each turn, capped to the last 30) and returns `{ reply, inseridos }`.
+
+- The model never writes SQL. It calls server-side **tools** — `consultar_gastos`, `totais_por_tag` (read), `verificar_duplicatas` (read, mandatory before any insert), and `registrar_gasto` (write) — whose handlers run the same parameterized `loadSql` queries as everything else (`gastos/query_flexible.sql`, `gastos/sum_flexible.sql`, `gastos/find_similar.sql`, plus the shared `insert.sql` / `totals_by_tag_range.sql`). Optional filters use the `($n::type IS NULL OR col = $n)` idiom so one static `.sql` file covers all filter combinations.
+- The whole tool loop runs inside one POST (capped at `MAX_STEPS`); `generateWithRetry` retries transient 429/500/503 from Gemini with backoff.
+- `buildSystemInstruction()` is rebuilt per request and injects today's UTC date + the live tags/contas lists, so relative dates and tag/conta names resolve correctly. The system prompt enforces the spec's flow: always check duplicates → show a summary → **wait for explicit user confirmation** before calling `registrar_gasto`. Unlike the HTTP form path, the assistant's installment inserts **do** append the ` (parcela X/Y)` suffix (matching the spec).
+- Tag names are resolved case-insensitively; an unknown tag is created on insert (`resolveTagId(..., { criarSeNaoExistir: true })`). The view renders assistant replies as Markdown via `marked` (CDN).
 
 ## Chat-based expense input (specs/input_gastos.md)
 
