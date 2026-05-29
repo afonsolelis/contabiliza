@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `src/db/index.js` prefers `DATABASE_URL` (with optional `PGSSL=true`) over individual `PG*` vars. `.env` is loaded once from `server.js` via `dotenv`. The legacy Basic Auth middleware is commented out in `server.js` — leave it in place; do not re-enable without being asked.
 
-The chat assistant needs `GEMINI_API_KEY` (Google Gemini, an `AIza…` key); `GEMINI_MODEL` is optional (defaults to `gemini-2.5-flash`). Without the key the app still boots — the assistant just returns a "configure GEMINI_API_KEY" message. The key is read at module load by `src/services/geminiClient.js`; it lives in `.env` only (gitignored) with a placeholder in `.env.example`.
+The chat assistant needs `GEMINI_API_KEY` (Google Gemini, an `AIza…` key); `GEMINI_MODEL` is optional (defaults to `gemini-2.5-flash`). Without the key the app still boots — the assistant just returns a "configure GEMINI_API_KEY" message. The key is read at module load by `src/services/geminiClient.js`; it lives in `.env` only (gitignored) with a placeholder in `.env.example`. The optional Telegram bot adds `TELEGRAM_BOT_TOKEN` (from @BotFather) and `TELEGRAM_ALLOWED_IDS` (CSV allowlist of Telegram user ids); see the Telegram bot section.
 
 ## Architecture
 
@@ -47,12 +47,22 @@ Every date-filtered query uses the pattern `data_efetivacao >= $start AND data_e
 
 ### AI chat assistant (`/assistente`)
 
-`assistenteController.js` is an in-app port of `specs/input_gastos.md`: instead of Claude running `psql`, the app drives **Google Gemini** (`@google/genai`, `gemini-2.5-flash`) via **function calling**. `GET /assistente` renders the chat page; `POST /assistente/mensagem` takes `{ message, history }` (history is text-only turns kept client-side and posted back each turn, capped to the last 30) and returns `{ reply, inseridos }`.
+An in-app port of `specs/input_gastos.md`: instead of Claude running `psql`, the app drives **Google Gemini** (`@google/genai`, `gemini-2.5-flash`) via **function calling**. The channel-agnostic core is `src/services/assistenteCore.js`, which exposes `processarMensagem({ history, message, canal })` → `{ reply, inseridos }`. Two thin channels call it:
+  - **Web** — `assistenteController.js`: `GET /assistente` renders the chat page; `POST /assistente/mensagem` takes `{ message, history }` (history is text-only turns kept client-side and posted back each turn) and returns `{ reply, inseridos }`.
+  - **Telegram** — `src/services/telegramBot.js` (see below).
 
 - The model never writes SQL. It calls server-side **tools** — `consultar_gastos`, `totais_por_tag` (read), `verificar_duplicatas` (read, mandatory before any insert), and `registrar_gasto` (write) — whose handlers run the same parameterized `loadSql` queries as everything else (`gastos/query_flexible.sql`, `gastos/sum_flexible.sql`, `gastos/find_similar.sql`, plus the shared `insert.sql` / `totals_by_tag_range.sql`). Optional filters use the `($n::type IS NULL OR col = $n)` idiom so one static `.sql` file covers all filter combinations.
-- The whole tool loop runs inside one POST (capped at `MAX_STEPS`); `generateWithRetry` retries transient 429/500/503 from Gemini with backoff.
-- `buildSystemInstruction()` is rebuilt per request and injects today's UTC date + the live tags/contas lists, so relative dates and tag/conta names resolve correctly. The system prompt enforces the spec's flow: always check duplicates → show a summary → **wait for explicit user confirmation** before calling `registrar_gasto`. Unlike the HTTP form path, the assistant's installment inserts **do** append the ` (parcela X/Y)` suffix (matching the spec).
-- Tag names are resolved case-insensitively; an unknown tag is created on insert (`resolveTagId(..., { criarSeNaoExistir: true })`). The view renders assistant replies as Markdown via `marked` (CDN).
+- The whole tool loop runs inside one `processarMensagem` call (capped at `MAX_STEPS`); `generateWithRetry` retries transient 429/500/503 from Gemini with backoff.
+- `buildSystemInstruction(canal)` is rebuilt per request and injects today's UTC date + the live tags/contas lists, so relative dates and tag/conta names resolve correctly. `canal` only changes the output style: `'web'` allows Markdown/tables; `'telegram'` forces plain text (Telegram renders neither). The prompt enforces the spec's flow: always check duplicates → show a summary → **wait for explicit user confirmation** before calling `registrar_gasto`. Unlike the HTTP form path, the assistant's installment inserts **do** append the ` (parcela X/Y)` suffix (matching the spec).
+- Tag names are resolved case-insensitively; an unknown tag is created on insert (`resolveTagId(..., { criarSeNaoExistir: true })`). The web view renders assistant replies as Markdown via `marked` (CDN).
+
+### Telegram bot (`src/services/telegramBot.js`)
+
+`startTelegramBot()` is called from `server.js` after `listen()`. With no `TELEGRAM_BOT_TOKEN` it no-ops; otherwise it runs **long polling** (`getUpdates`, no webhook/public URL needed — works the same locally and on Railway) and routes each text message through `processarMensagem({ canal: 'telegram' })`.
+
+- **Access control is mandatory** — the bot writes to the real DB. Only Telegram user ids in `TELEGRAM_ALLOWED_IDS` (CSV) are served; everyone else just gets their own id echoed back. An **empty allowlist denies everyone** (and the echo is how the owner discovers their id for first setup).
+- Conversation history is kept server-side in an in-memory `Map` keyed by `chat_id` (resets on restart; `/reset` and `/start` clear it). Replies are split into 4096-char chunks.
+- Runs inside the single web process; assumes one replica (a second `getUpdates` consumer would 409).
 
 ## Chat-based expense input (specs/input_gastos.md)
 

@@ -9,6 +9,7 @@ const { router: dashboardRouter } = require('./src/controllers/dashboardControll
 const { router: contasRouter } = require('./src/controllers/contasController');
 const { router: reportsRouter } = require('./src/controllers/reportsController');
 const { router: assistenteRouter } = require('./src/controllers/assistenteController');
+const { startTelegramBot } = require('./src/services/telegramBot');
 
 const app = express();
 
@@ -82,4 +83,5 @@ const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
   console.log(`Servidor iniciado em http://localhost:${port}`);
+  startTelegramBot();
 });
