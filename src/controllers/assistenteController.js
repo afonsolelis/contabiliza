@@ -1,16 +1,19 @@
 const express = require('express');
-const { processarMensagem } = require('../services/assistenteCore');
-const { isConfigured } = require('../services/geminiClient');
+const { processarMensagem, isConfigured } = require('../services/assistenteCore');
 
 const router = express.Router();
 
+// Nome da variável esperada conforme o provider ativo — usado nas mensagens de erro.
+const KEY_VAR = (process.env.AI_PROVIDER || 'gemini').toLowerCase() === 'nim'
+  ? 'NIM_API_KEY' : 'GEMINI_API_KEY';
+
 router.get('/', (req, res) => {
-  res.render('assistente/index', { configurado: isConfigured() });
+  res.render('assistente/index', { configurado: isConfigured(), keyVar: KEY_VAR });
 });
 
 router.post('/mensagem', async (req, res) => {
   if (!isConfigured()) {
-    return res.status(503).json({ erro: 'Assistente indisponível: configure GEMINI_API_KEY no .env.' });
+    return res.status(503).json({ erro: `Assistente indisponível: configure ${KEY_VAR} no .env.` });
   }
 
   const mensagem = (req.body.message || '').toString().trim();

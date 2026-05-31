@@ -87,7 +87,9 @@ async function handleUpdate(update) {
   }
 
   if (!isConfigured()) {
-    await enviar(chatId, 'IA não configurada: defina GEMINI_API_KEY no .env.');
+    const keyVar = (process.env.AI_PROVIDER || 'gemini').toLowerCase() === 'nim'
+      ? 'NIM_API_KEY' : 'GEMINI_API_KEY';
+    await enviar(chatId, `IA não configurada: defina ${keyVar} no .env.`);
     return;
   }
 

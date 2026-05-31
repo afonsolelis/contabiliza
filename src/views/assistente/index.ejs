@@ -51,7 +51,7 @@
 
       <% if (!configurado) { %>
         <div class="alert alert-warning">
-          <strong>IA não configurada.</strong> Defina <code>GEMINI_API_KEY</code> no arquivo <code>.env</code> e reinicie o servidor.
+          <strong>IA não configurada.</strong> Defina <code><%= typeof keyVar !== 'undefined' ? keyVar : 'GEMINI_API_KEY' %></code> no arquivo <code>.env</code> e reinicie o servidor.
         </div>
       <% } %>
 
