@@ -14,7 +14,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `src/db/index.js` prefers `DATABASE_URL` (with optional `PGSSL=true`) over individual `PG*` vars. `.env` is loaded once from `server.js` via `dotenv`. The legacy Basic Auth middleware is commented out in `server.js` — leave it in place; do not re-enable without being asked.
 
-The chat assistant needs `GEMINI_API_KEY` (Google Gemini, an `AIza…` key); `GEMINI_MODEL` is optional (defaults to `gemini-2.5-flash`). Without the key the app still boots — the assistant just returns a "configure GEMINI_API_KEY" message. The key is read at module load by `src/services/geminiClient.js`; it lives in `.env` only (gitignored) with a placeholder in `.env.example`. The optional Telegram bot adds `TELEGRAM_BOT_TOKEN` (from @BotFather) and `TELEGRAM_ALLOWED_IDS` (CSV allowlist of Telegram user ids); see the Telegram bot section.
+The chat assistant has two providers, selected by `AI_PROVIDER` (default `gemini`):
+
+- **`gemini`** — needs `GEMINI_API_KEY` (Google Gemini, an `AIza…` key); `GEMINI_MODEL` is optional (defaults to `gemini-2.5-flash`). Read at module load by `src/services/geminiClient.js`. Uses native function calling.
+- **`nim`** — needs `NIM_API_KEY` (NVIDIA NIM, an `nvapi-…` key from build.nvidia.com); `NIM_MODEL` is optional (default `google/gemma-3n-e4b-it`); `NIM_BASE_URL` is optional (defaults to `https://integrate.api.nvidia.com/v1`). Read at module load by `src/services/nimClient.js`. The endpoint is OpenAI-compatible, so the `openai` npm SDK talks to it directly. Because Gemma has no native function calling, this path uses **JSON-mode prompting** — see the assistant section.
+
+Without the configured provider's key the app still boots — the assistant just returns a "configure ..._API_KEY" message. Keys live in `.env` only (gitignored) with placeholders in `.env.example`. The optional Telegram bot adds `TELEGRAM_BOT_TOKEN` (from @BotFather) and `TELEGRAM_ALLOWED_IDS` (CSV allowlist of Telegram user ids); see the Telegram bot section.
 
 ## Architecture
 
@@ -47,12 +52,17 @@ Every date-filtered query uses the pattern `data_efetivacao >= $start AND data_e
 
 ### AI chat assistant (`/assistente`)
 
-An in-app port of `specs/input_gastos.md`: instead of Claude running `psql`, the app drives **Google Gemini** (`@google/genai`, `gemini-2.5-flash`) via **function calling**. The channel-agnostic core is `src/services/assistenteCore.js`, which exposes `processarMensagem({ history, message, canal })` → `{ reply, inseridos }`. Two thin channels call it:
+An in-app port of `specs/input_gastos.md`. The channel-agnostic core is `src/services/assistenteCore.js`, which exposes `processarMensagem({ history, message, canal })` → `{ reply, inseridos }`. Two thin channels call it:
   - **Web** — `assistenteController.js`: `GET /assistente` renders the chat page; `POST /assistente/mensagem` takes `{ message, history }` (history is text-only turns kept client-side and posted back each turn) and returns `{ reply, inseridos }`.
   - **Telegram** — `src/services/telegramBot.js` (see below).
 
-- The model never writes SQL. It calls server-side **tools** — `consultar_gastos`, `totais_por_tag` (read), `verificar_duplicatas` (read, mandatory before any insert), and `registrar_gasto` (write) — whose handlers run the same parameterized `loadSql` queries as everything else (`gastos/query_flexible.sql`, `gastos/sum_flexible.sql`, `gastos/find_similar.sql`, plus the shared `insert.sql` / `totals_by_tag_range.sql`). Optional filters use the `($n::type IS NULL OR col = $n)` idiom so one static `.sql` file covers all filter combinations.
-- The whole tool loop runs inside one `processarMensagem` call (capped at `MAX_STEPS`); `generateWithRetry` retries transient 429/500/503 from Gemini with backoff.
+The model never writes SQL. It calls server-side **tools** — `consultar_gastos`, `totais_por_tag` (read), `verificar_duplicatas` (read, mandatory before any insert), and `registrar_gasto` (write) — whose handlers (`executeTool`) run the same parameterized `loadSql` queries as everything else (`gastos/query_flexible.sql`, `gastos/sum_flexible.sql`, `gastos/find_similar.sql`, plus the shared `insert.sql` / `totals_by_tag_range.sql`). Optional filters use the `($n::type IS NULL OR col = $n)` idiom so one static `.sql` file covers all filter combinations.
+
+`processarMensagem` dispatches on `AI_PROVIDER`:
+
+- **`gemini` (default)** — `processarMensagemGemini` uses `@google/genai` with **native function calling**. The model emits `functionCall` parts; the server executes the tool and feeds back `functionResponse` parts. `generateWithRetry` retries transient 429/500/503 from Gemini with backoff. Gemini 2.5 sometimes returns empty text after a successful tool call — `fallbackReplyIfInserted` provides a friendly "✅ Gasto registrado (id N)" so the UI never shows "(sem resposta)".
+- **`nim`** — `processarMensagemNim` uses the `openai` SDK against `integrate.api.nvidia.com/v1`. Because Gemma 3n has no native function calling, the model is prompted (via `TOOLS_DOC_NIM` appended to the system instruction) to emit EXACTLY one JSON per turn: `{"tool":"<name>","args":{...}}` or `{"final":"<text>"}`. `extractJson` is tolerant — strips ```json fences and walks balanced braces to recover a JSON object even if the model wraps it in prose. After each tool call, the server appends the assistant JSON and a `RESULTADO de <tool>: …` user message, then loops.
+- The whole tool loop runs inside one `processarMensagem` call (capped at `MAX_STEPS = 6`). Both paths share `executeTool` and `buildSystemInstruction(canal, provider)`.
 - `buildSystemInstruction(canal)` is rebuilt per request and injects today's UTC date + the live tags/contas lists, so relative dates and tag/conta names resolve correctly. `canal` only changes the output style: `'web'` allows Markdown/tables; `'telegram'` forces plain text (Telegram renders neither). The prompt enforces the spec's flow: always check duplicates → show a summary → **wait for explicit user confirmation** before calling `registrar_gasto`. Unlike the HTTP form path, the assistant's installment inserts **do** append the ` (parcela X/Y)` suffix (matching the spec).
 - Tag names are resolved case-insensitively; an unknown tag is created on insert (`resolveTagId(..., { criarSeNaoExistir: true })`). The web view renders assistant replies as Markdown via `marked` (CDN).
 

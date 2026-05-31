@@ -3,7 +3,16 @@
 // com o Gemini. Os controllers/bots só chamam processarMensagem(...).
 const { randomUUID } = require('crypto');
 const { query, loadSql } = require('../db');
-const { ai, MODEL, Type, isConfigured } = require('./geminiClient');
+const { ai, MODEL, Type, isConfigured: geminiConfigured } = require('./geminiClient');
+const { client: nimClient, MODEL: NIM_MODEL, isConfigured: nimConfigured } = require('./nimClient');
+
+// Provider ativo: 'gemini' (padrão, function calling nativo) ou 'nim'
+// (NVIDIA NIM via JSON-mode prompting — para Gemma e similares sem tool-use).
+const PROVIDER = (process.env.AI_PROVIDER || 'gemini').toLowerCase();
+
+function isConfigured() {
+  return PROVIDER === 'nim' ? nimConfigured() : geminiConfigured();
+}
 
 // SQL (carregado no load do módulo, como no resto do app)
 const insertGastoSql = loadSql('gastos/insert.sql');
@@ -290,11 +299,37 @@ const tools = [{
   ],
 }];
 
+// Descrição textual das ferramentas — usada no system prompt quando o provider
+// não tem function calling nativo (NIM/Gemma). Mantém os mesmos nomes/args das
+// declarações Gemini acima pra que `executeTool` sirva pros dois caminhos.
+const TOOLS_DOC_NIM = `=== FERRAMENTAS DISPONÍVEIS ===
+Cada turno seu DEVE ser EXATAMENTE um destes formatos JSON, SEM nenhum texto, markdown ou comentário ao redor, e SEM cercas \`\`\`json. NUNCA misture os dois formatos no mesmo turno.
+
+Para chamar uma ferramenta:
+{"tool":"<nome>","args":{ ... }}
+
+Para dar a resposta final ao usuário (após coletar tudo que precisa):
+{"final":"<sua resposta em pt-BR>"}
+
+Ferramentas:
+
+1) verificar_duplicatas (LEITURA — OBRIGATÓRIA antes de registrar)
+   args: { "descricao": string, "valor": number, "data_efetivacao"?: "YYYY-MM-DD" }
+
+2) consultar_gastos (LEITURA)
+   args: { "data_inicio"?: "YYYY-MM-DD", "data_fim"?: "YYYY-MM-DD", "tag"?: string, "tipo"?: "pix"|"cartao"|"debito", "conta_id"?: integer, "apenas_total"?: boolean }
+
+3) totais_por_tag (LEITURA)
+   args: { "data_inicio"?: "YYYY-MM-DD", "data_fim"?: "YYYY-MM-DD" }
+
+4) registrar_gasto (ESCRITA — só DEPOIS do usuário confirmar explicitamente)
+   args: { "descricao": string, "valor": number, "tipo"?: "pix"|"cartao"|"debito", "conta_id"?: integer, "tag"?: string, "data_efetivacao"?: "YYYY-MM-DD", "num_parcelas"?: integer }`;
+
 // ---------------------------------------------------------------------------
 // System instruction — montada por requisição (data atual + tags/contas frescas)
 // `canal` ajusta só o estilo de saída (web usa Markdown; Telegram, texto puro).
 // ---------------------------------------------------------------------------
-async function buildSystemInstruction(canal = 'web') {
+async function buildSystemInstruction(canal = 'web', provider = PROVIDER) {
   const { rows: tags } = await query(listTagsSql);
   const { rows: contas } = await query(listContasSql);
   const hoje = todayUtcStart();
@@ -333,21 +368,29 @@ REGRAS PARA REGISTRAR UM GASTO (siga à risca):
 6. Se o usuário citar vários gastos de uma vez, trate todos — mas confirme antes de inserir.
 7. Após inserir, confirme citando os ids retornados pela ferramenta.
 
-${estilo}`;
+${estilo}${provider === 'nim' ? `\n\n${TOOLS_DOC_NIM}` : ''}`;
+}
+
+// Fallback amigável quando o modelo cala mas alguma inserção rolou — evita o
+// "(sem resposta)" no frontend.
+function fallbackReplyIfInserted(inseridos) {
+  if (inseridos.length === 0) return null;
+  return inseridos.length === 1
+    ? `✅ Gasto registrado com sucesso (id ${inseridos[0]}).`
+    : `✅ Gastos registrados com sucesso (ids ${inseridos.join(', ')}).`;
 }
 
 // ---------------------------------------------------------------------------
-// Processa um turno da conversa. `history` são turnos de texto (user/model).
-// Retorna { reply, inseridos }. Lança erro se a chamada à IA falhar.
+// Caminho Gemini (function calling nativo).
 // ---------------------------------------------------------------------------
-async function processarMensagem({ history = [], message, canal = 'web' }) {
+async function processarMensagemGemini({ history, message, canal }) {
   const contents = (Array.isArray(history) ? history : [])
     .filter((m) => m && (m.role === 'user' || m.role === 'model') && typeof m.text === 'string')
     .slice(-MAX_HISTORY)
     .map((m) => ({ role: m.role, parts: [{ text: m.text }] }));
   contents.push({ role: 'user', parts: [{ text: message }] });
 
-  const systemInstruction = await buildSystemInstruction(canal);
+  const systemInstruction = await buildSystemInstruction(canal, 'gemini');
   const inseridos = [];
   let reply = '';
 
@@ -361,10 +404,19 @@ async function processarMensagem({ history = [], message, canal = 'web' }) {
     const calls = resp.functionCalls || [];
     if (!calls.length) {
       reply = resp.text || '';
+      // Gemini 2.5 às vezes devolve texto vazio depois de uma tool call bem-sucedida.
+      if (!reply.trim()) {
+        const fb = fallbackReplyIfInserted(inseridos);
+        if (fb) reply = fb;
+        else {
+          console.warn('[assistente] resposta vazia sem inserção. finishReason=%s',
+            resp.candidates?.[0]?.finishReason);
+          reply = 'Não consegui formular uma resposta agora. Pode reformular ou repetir?';
+        }
+      }
       break;
     }
 
-    // Registra a chamada do modelo e executa cada ferramenta, devolvendo o resultado.
     contents.push({ role: 'model', parts: calls.map((fc) => ({ functionCall: fc })) });
     const responseParts = [];
     for (const fc of calls) {
@@ -380,11 +432,140 @@ async function processarMensagem({ history = [], message, canal = 'web' }) {
     contents.push({ role: 'user', parts: responseParts });
 
     if (step === MAX_STEPS - 1) {
-      reply = 'Não consegui concluir o pedido em tempo. Pode reformular ou simplificar?';
+      reply = fallbackReplyIfInserted(inseridos)
+        || 'Não consegui concluir o pedido em tempo. Pode reformular ou simplificar?';
     }
   }
 
   return { reply, inseridos };
+}
+
+// ---------------------------------------------------------------------------
+// Caminho NIM (NVIDIA, OpenAI-compatible). Sem function calling nativo —
+// o modelo emite JSON `{"tool":...}` ou `{"final":...}` em cada turno, e o
+// servidor parseia + executa. Gemma 3n é um modelo pequeno, então a tolerância
+// a desvio de formato (ex.: cercas ```json, texto antes do JSON) é alta.
+// ---------------------------------------------------------------------------
+function extractJson(text) {
+  if (!text) return null;
+  let s = String(text).trim();
+  // Remove cercas ```json … ``` se vierem
+  s = s.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  try { return JSON.parse(s); } catch (_) { /* tenta extrair substring */ }
+  // Procura primeiro objeto JSON balanceado (tolerante a texto antes/depois)
+  let depth = 0, start = -1;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === '{') { if (depth === 0) start = i; depth++; }
+    else if (c === '}') {
+      depth--;
+      if (depth === 0 && start !== -1) {
+        try { return JSON.parse(s.slice(start, i + 1)); } catch (_) { return null; }
+      }
+    }
+  }
+  return null;
+}
+
+async function nimChatWithRetry(messages, attempts = 3) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await nimClient.chat.completions.create({
+        model: NIM_MODEL,
+        messages,
+        max_tokens: 512,
+        temperature: 0.2,
+        top_p: 0.7,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        stream: false,
+      });
+    } catch (e) {
+      lastErr = e;
+      const retriable = [429, 500, 502, 503, 504].includes(e?.status);
+      if (!retriable || i === attempts - 1) throw e;
+      await sleep(600 * (i + 1));
+    }
+  }
+  throw lastErr;
+}
+
+async function processarMensagemNim({ history, message, canal }) {
+  const systemInstruction = await buildSystemInstruction(canal, 'nim');
+  const inseridos = [];
+  const messages = [{ role: 'system', content: systemInstruction }];
+
+  // Histórico: turnos `model` viram `assistant`. Como no caminho Gemini, só
+  // turnos de texto são preservados — as tool calls do turno anterior somem
+  // (o modelo é instruído a re-verificar duplicatas a cada nova mensagem).
+  for (const m of (Array.isArray(history) ? history : []).slice(-MAX_HISTORY)) {
+    if (!m || typeof m.text !== 'string') continue;
+    if (m.role === 'user') messages.push({ role: 'user', content: m.text });
+    else if (m.role === 'model') messages.push({ role: 'assistant', content: m.text });
+  }
+  messages.push({ role: 'user', content: message });
+
+  let reply = '';
+
+  for (let step = 0; step < MAX_STEPS; step++) {
+    const resp = await nimChatWithRetry(messages);
+    const content = resp.choices?.[0]?.message?.content ?? '';
+    const finishReason = resp.choices?.[0]?.finish_reason;
+    const parsed = extractJson(content);
+
+    if (!parsed) {
+      // Modelo respondeu fora do formato — devolve o que veio como texto final.
+      reply = (content || '').trim()
+        || fallbackReplyIfInserted(inseridos)
+        || 'Não consegui formular uma resposta agora. Pode reformular ou repetir?';
+      if (!content) console.warn('[assistente][nim] vazio. finish_reason=%s', finishReason);
+      break;
+    }
+
+    if (parsed.final !== undefined) {
+      reply = String(parsed.final || '').trim() || fallbackReplyIfInserted(inseridos) || '';
+      if (!reply) reply = 'Não consegui formular uma resposta agora. Pode reformular ou repetir?';
+      break;
+    }
+
+    if (parsed.tool) {
+      let result;
+      try {
+        result = await executeTool(parsed.tool, parsed.args || {}, inseridos);
+      } catch (e) {
+        console.error('[assistente][nim] erro na ferramenta', parsed.tool, e);
+        result = { erro: 'Falha ao executar a ferramenta.' };
+      }
+      // Mantém a chamada e o resultado no histórico desta requisição.
+      messages.push({ role: 'assistant', content: JSON.stringify({ tool: parsed.tool, args: parsed.args || {} }) });
+      messages.push({ role: 'user', content: `RESULTADO de ${parsed.tool}:\n${JSON.stringify(result)}\n\nResponda EXCLUSIVAMENTE com JSON no formato {"tool":...} ou {"final":...}.` });
+    } else {
+      // JSON sem `tool` nem `final` — trata como resposta livre.
+      reply = content.trim();
+      break;
+    }
+
+    if (step === MAX_STEPS - 1) {
+      reply = fallbackReplyIfInserted(inseridos)
+        || 'Não consegui concluir o pedido em tempo. Pode reformular ou simplificar?';
+    }
+  }
+
+  return { reply, inseridos };
+}
+
+// ---------------------------------------------------------------------------
+// Dispatcher — escolhe o provider conforme AI_PROVIDER.
+// `history` são turnos de texto (user/model). Retorna { reply, inseridos }.
+// ---------------------------------------------------------------------------
+async function processarMensagem({ history = [], message, canal = 'web' }) {
+  if (PROVIDER === 'nim') {
+    if (!nimConfigured()) throw new Error('NIM_API_KEY ausente — configure no .env.');
+    return processarMensagemNim({ history, message, canal });
+  }
+  if (!geminiConfigured()) throw new Error('GEMINI_API_KEY ausente — configure no .env.');
+  return processarMensagemGemini({ history, message, canal });
 }
 
 module.exports = { processarMensagem, isConfigured, MAX_HISTORY };
