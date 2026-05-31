@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(command -v psql)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Bash(node *)",
+      "Bash(npm install *)",
+      "Bash(winget --version)",
+      "Bash(choco --version)",
+      "Bash(powershell -NoProfile -Command \"scoop --version\")",
+      "Bash(winget install *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(node -e \"require\\('dotenv'\\).config\\(\\); const { query } = require\\('./src/db'\\); \\(async \\(\\) => { const t = await query\\('SELECT id, nome FROM tags ORDER BY nome'\\); console.log\\('TAGS:'\\); console.table\\(t.rows\\); const c = await query\\('SELECT id, banco FROM contas ORDER BY id'\\); console.log\\('CONTAS:'\\); console.table\\(c.rows\\); process.exit\\(0\\); }\\)\\(\\).catch\\(e => { console.error\\(e\\); process.exit\\(1\\); }\\);\")",
+      "PowerShell(node -e \"require\\('dotenv'\\).config\\(\\); const { query } = require\\('./src/db'\\); \\(async \\(\\) => { const t = await query\\(`SELECT column_name FROM information_schema.columns WHERE table_name='tags'`\\); console.log\\('tags cols:', t.rows\\); const g = await query\\(`SELECT column_name FROM information_schema.columns WHERE table_name='gastos'`\\); console.log\\('gastos cols:', g.rows\\); process.exit\\(0\\); }\\)\\(\\).catch\\(e => { console.error\\(e.message\\); process.exit\\(1\\); }\\);\")",
+      "PowerShell(node _tmp_query.js)",
+      "Skill(update-config)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
+    ],
+    "defaultMode": "bypassPermissions"
+  }
+}
