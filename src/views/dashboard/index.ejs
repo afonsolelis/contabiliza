@@ -134,12 +134,25 @@
         </section>
 
         <section class="mt-4 mb-5">
-          <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
             <h2 class="h4 mb-0">Gastos no intervalo</h2>
-            <div id="filterInfo" class="text-muted small" style="display: none;">
-              <span id="filterText"></span>
-              <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="clearFilter">Limpar
-                filtro</button>
+            <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2">
+              <div id="filterInfo" class="text-muted small align-items-center" style="display: none;">
+                <span id="filterText"></span>
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="clearFilter">Limpar
+                  filtro</button>
+              </div>
+              <div class="input-group" style="max-width: 320px;">
+                <span class="input-group-text bg-body" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                    viewBox="0 0 16 16">
+                    <path
+                      d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z" />
+                  </svg>
+                </span>
+                <input type="search" class="form-control" id="gastosSearch"
+                  placeholder="Pesquisar gastos" aria-label="Pesquisar na tabela de gastos">
+              </div>
             </div>
           </div>
           <div class="table-responsive">
@@ -205,6 +218,7 @@
 
           // Estado do filtro
           let currentFilter = { type: null, value: null, label: null };
+          let currentSearch = '';
           let barChart = null;
           let pieChart = null;
 
@@ -225,17 +239,41 @@
             return isoDate.split('T')[0];
           }
 
-          function filterTable(filterType, filterValue, filterLabel) {
+          function normalizeSearchText(value) {
+            return String(value || '')
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .toLocaleLowerCase('pt-BR');
+          }
+
+          function applyTableFilters() {
             const rows = document.querySelectorAll('#gastosTable tbody tr');
+
+            rows.forEach(row => {
+              let matchesChartFilter = true;
+
+              if (currentFilter.type === 'date') {
+                matchesChartFilter = getDateOnly(row.getAttribute('data-date')) === currentFilter.value;
+              } else if (currentFilter.type === 'conta') {
+                matchesChartFilter = row.getAttribute('data-conta-id') === currentFilter.value;
+              }
+
+              const matchesSearch = !currentSearch ||
+                normalizeSearchText(row.textContent).includes(currentSearch);
+
+              row.style.display = matchesChartFilter && matchesSearch ? '' : 'none';
+            });
+          }
+
+          function filterTable(filterType, filterValue, filterLabel) {
             const filterInfo = document.getElementById('filterInfo');
             const filterText = document.getElementById('filterText');
 
             // Se clicar no mesmo filtro, desseleciona
             if (currentFilter.type === filterType && currentFilter.value === filterValue) {
-              // Limpar filtro
-              rows.forEach(row => row.style.display = '');
-              filterInfo.style.display = 'none';
               currentFilter = { type: null, value: null, label: null };
+              filterInfo.style.display = 'none';
+              applyTableFilters();
 
               // Resetar destaque nos gráficos
               if (barChart) barChart.resetSeries();
@@ -245,20 +283,7 @@
 
             // Aplicar novo filtro
             currentFilter = { type: filterType, value: filterValue, label: filterLabel };
-
-            rows.forEach(row => {
-              let shouldShow = false;
-
-              if (filterType === 'date') {
-                const rowDate = getDateOnly(row.getAttribute('data-date'));
-                shouldShow = rowDate === filterValue;
-              } else if (filterType === 'conta') {
-                const rowContaId = row.getAttribute('data-conta-id');
-                shouldShow = rowContaId === filterValue;
-              }
-
-              row.style.display = shouldShow ? '' : 'none';
-            });
+            applyTableFilters();
 
             // Mostrar indicador de filtro ativo
             filterText.textContent = `Filtro ativo: ${filterLabel}`;
@@ -266,7 +291,11 @@
           }
 
           function clearFilter() {
-            filterTable(null, null, null);
+            currentFilter = { type: null, value: null, label: null };
+            document.getElementById('filterInfo').style.display = 'none';
+            applyTableFilters();
+            if (barChart) barChart.resetSeries();
+            if (pieChart) pieChart.resetSeries();
           }
 
           const categories = seriesData.map(p => formatLocalDateFromUtcIso(p.period));
@@ -360,6 +389,10 @@
 
           // Botão limpar filtro
           document.getElementById('clearFilter').addEventListener('click', clearFilter);
+          document.getElementById('gastosSearch').addEventListener('input', function (event) {
+            currentSearch = normalizeSearchText(event.target.value.trim());
+            applyTableFilters();
+          });
         })();
       </script>
       <script>
