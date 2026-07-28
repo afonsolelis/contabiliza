@@ -29,6 +29,19 @@
     .table thead th {
       font-size: 0.875rem;
     }
+    .sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    .sortable:hover {
+      background-color: rgba(13, 110, 253, 0.1);
+    }
+    .sort-indicator {
+      display: inline-block;
+      min-width: 1rem;
+      margin-left: .2rem;
+      color: #6c757d;
+    }
   </style>
   </head>
 <body>
@@ -56,21 +69,10 @@
       <table class="table table-striped table-sm align-middle">
         <thead>
           <tr>
-            <th>Jan</th>
-            <th>Fev</th>
-            <th>Mar</th>
-            <th>Abr</th>
-            <th>Mai</th>
-            <th>Jun</th>
-            <th>Jul</th>
-            <th>Ago</th>
-            <th>Set</th>
-            <th>Out</th>
-            <th>Nov</th>
-            <th>Dez</th>
-            <th>Total</th>
-            <th>Média 12m</th>
-            <th>Tag</th>
+            <% ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez','Total','Média 12m'].forEach(label => { %>
+              <th class="sortable" data-sort-type="number" tabindex="0" role="button" aria-sort="none"><%= label %><span class="sort-indicator">↕</span></th>
+            <% }) %>
+            <th class="sortable" data-sort-type="text" tabindex="0" role="button" aria-sort="none">Tag<span class="sort-indicator">↕</span></th>
           </tr>
         </thead>
         <tbody>
@@ -84,9 +86,9 @@
               function monthCell(monthNum, value, monthName) {
                 const val = Number(value);
                 if (val > 0) {
-                  return `<td class="clickable-cell" onclick="window.location='/relatorios/tag-mes-detalhes?year=${year}&month=${monthNum}&tag_id=${tagIdParam}&tag_name=${tagNameParam}'">${money(val)}</td>`;
+                  return `<td data-sort="${val}" class="clickable-cell" onclick="window.location='/relatorios/tag-mes-detalhes?year=${year}&month=${monthNum}&tag_id=${tagIdParam}&tag_name=${tagNameParam}'">${money(val)}</td>`;
                 } else {
-                  return `<td>${money(val)}</td>`;
+                  return `<td data-sort="${val}">${money(val)}</td>`;
                 }
               }
             %>
@@ -103,9 +105,9 @@
               <%- monthCell(10, r.out, 'Out') %>
               <%- monthCell(11, r.nov, 'Nov') %>
               <%- monthCell(12, r.dez, 'Dez') %>
-              <td class="fw-semibold"><%= money(total) %></td>
-              <td><%= money(total / 12) %></td>
-              <td><%= r.tag %></td>
+              <td data-sort="<%= total %>" class="fw-semibold"><%= money(total) %></td>
+              <td data-sort="<%= total / 12 %>"><%= money(total / 12) %></td>
+              <td data-sort="<%= String(r.tag).toLocaleLowerCase('pt-BR') %>"><%= r.tag %></td>
             </tr>
           <% }) %>
         </tbody>
@@ -234,6 +236,49 @@
       }
 
       renderChart();
+    })();
+  </script>
+  <script>
+    (function enableTableSorting() {
+      const table = document.querySelector('.table');
+      const tbody = table && table.tBodies[0];
+      if (!table || !tbody) return;
+
+      const headers = Array.from(table.querySelectorAll('thead th.sortable'));
+      headers.forEach((header, columnIndex) => {
+        const sort = () => {
+          const type = header.dataset.sortType;
+          const currentDirection = header.getAttribute('aria-sort');
+          const ascending = currentDirection === 'descending' ||
+            (currentDirection === 'none' && type === 'text');
+          const rows = Array.from(tbody.rows);
+
+          rows.sort((a, b) => {
+            const left = a.cells[columnIndex].dataset.sort || '';
+            const right = b.cells[columnIndex].dataset.sort || '';
+            const comparison = type === 'number'
+              ? Number(left) - Number(right)
+              : left.localeCompare(right, 'pt-BR', { sensitivity: 'base' });
+            return ascending ? comparison : -comparison;
+          });
+
+          headers.forEach((item) => {
+            item.setAttribute('aria-sort', 'none');
+            item.querySelector('.sort-indicator').textContent = '↕';
+          });
+          header.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
+          header.querySelector('.sort-indicator').textContent = ascending ? '▲' : '▼';
+          rows.forEach((row) => tbody.appendChild(row));
+        };
+
+        header.addEventListener('click', sort);
+        header.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            sort();
+          }
+        });
+      });
     })();
   </script>
   <script>
